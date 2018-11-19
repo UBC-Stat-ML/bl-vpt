@@ -47,7 +47,7 @@ class AcceptPrs {
   }
   
   def static LinkedHashMap<Double,List<Double>> preprocessedEnergies(File f) {
-    val result = _loadEnergies(f)
+    val result = loadEnergies(f)
     _burnInShuffle(result, 0.2, new Random(1))
     return result
   }
@@ -69,7 +69,7 @@ class AcceptPrs {
    * 
    * Key are ordered from 1.0 to 0.0
    */
-  def private static LinkedHashMap<Double,List<Double>> _loadEnergies(File f) {
+  def static LinkedHashMap<Double,List<Double>> loadEnergies(File f) {
     val result = new LinkedHashMap<Double,List<Double>>
     for (line : BriefIO.readLines(f).indexCSV) {
       val annealParam = Double::parseDouble(line.get(PT::annealingParameterColumn))

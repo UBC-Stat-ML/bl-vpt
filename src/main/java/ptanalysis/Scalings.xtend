@@ -4,6 +4,7 @@ import java.io.File
 import blang.inits.experiments.Experiment
 
 class Scalings extends Experiment {
+  
   override run() {
     val writer = results.getTabularWriter("output")
     val energies = AcceptPrs::preprocessedEnergies(new File("/Users/bouchard/experiments/blang-mixture-tempering/work/55/1fdcf66051e25fba133d3be2af06d2/results/all/2018-11-13-22-28-19-LplqtyMI.exec/samples/energy.csv"))
