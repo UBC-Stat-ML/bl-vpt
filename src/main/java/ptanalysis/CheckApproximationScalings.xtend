@@ -48,6 +48,7 @@ class CheckApproximationScalings extends Experiment {
     Collections::sort(annealParams)
     val result = new ArrayList
     var currentAnnealParam = 0.0
+    val writer = results.getTabularWriter("all-prs")
     for (indexAndPr : indicesAndAcceptPrs) {
       val nextAnnealParam = annealParams.get(indexAndPr.key)
       val approx = prs.between(currentAnnealParam, nextAnnealParam)
@@ -55,7 +56,12 @@ class CheckApproximationScalings extends Experiment {
       currentAnnealParam = nextAnnealParam
       // report that accept pr for the two methods
       val mc = indexAndPr.value
-      println(mc + " " + approx)
+      writer.write(
+        "currentAnnealParam" -> currentAnnealParam,
+        "nextAnnealParam" -> nextAnnealParam,
+        "approx" -> approx,
+        "mc" -> mc
+      )
     }
     return result
   }
