@@ -11,15 +11,15 @@ import java.util.ArrayList
 import java.util.Collections
 import java.util.Random
 
-class AcceptPrs {
+class SwapStaticUtils {
   
-  def static List<Double> equallySpacedAcceptPrs(LinkedHashMap<Double,List<Double>> energies, double targetAccept) {
+  def static List<Pair<Integer,Double>> equallySpacedAcceptPrs(LinkedHashMap<Double,List<Double>> energies, double targetAccept) {
     val annealParams = new ArrayList(energies.keySet)
     val result = new ArrayList
     var currentIndex = 0
     while (currentIndex < annealParams.size - 1) {
       val nextIndexAndAcceptPr = nextIndexAndAcceptPr(currentIndex, annealParams, energies, targetAccept)
-      result.add(nextIndexAndAcceptPr.value)
+      result.add(nextIndexAndAcceptPr)
       currentIndex = nextIndexAndAcceptPr.key
     }
     return result
@@ -48,7 +48,7 @@ class AcceptPrs {
   
   def static LinkedHashMap<Double,List<Double>> preprocessedEnergies(File f) {
     val result = loadEnergies(f)
-    _burnInShuffle(result, 0.2, new Random(1))
+    _burnInShuffle(result, 0.5, new Random(1))
     return result
   }
   

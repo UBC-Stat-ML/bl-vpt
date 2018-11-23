@@ -16,7 +16,10 @@ import java.util.List
     if (current == absorbingState(0)) return absorbingState(0)
     if (current == absorbingState(1)) return absorbingState(1)
     val proposedNext = current.key + current.value
-    if (rand.nextBernoulli(acceptPrs.get(Math.min(current.key, proposedNext))))
+    // convention is that acceptPrs at index i stores pr between i and i+1, so get i by taking min
+    val i = Math.min(current.key, proposedNext)
+    val acceptPr = acceptPrs.get(i)
+    if (rand.nextBernoulli(acceptPr))
       return proposedNext -> if (shouldFlipAfterAccept(proposedNext)) flip(rand) else current.value
     else
       return current.key ->  if (shouldFlipAfterAccept(proposedNext)) flip(rand) else -current.value

@@ -1,17 +1,19 @@
 package ptanalysis
 
-import java.io.File
 import blang.inits.experiments.Experiment
+import blang.inits.Arg
 
-class OptimizedScalings2 extends Experiment {
+class RejuvenationScalings extends Experiment {
+  
+  @Arg
+  SwapPrs swapPrs 
   
   override run() {
     val writer = results.getTabularWriter("output")
-    val prs = new ApproxAcceptPrs(new File("/Users/bouchard/experiments/blang-mixture-tempering/work/55/1fdcf66051e25fba133d3be2af06d2/results/all/2018-11-13-22-28-19-LplqtyMI.exec/samples/energy.csv"))
-    for (target : (1..8).map[it as double/10.0]) {
+    for (target : (1..9).map[it as double/10.0]) {
       for (reversible : #[true, false]) {
         println("reversible = " + reversible)
-        val optimizer = new GridOptimizer(prs, reversible)
+        val optimizer = new GridOptimizer(swapPrs, reversible)
         optimizer.fromTargetAccept(target)
         println("nChains for target " + target + " is " + optimizer.grid.size)
         println("chain = " + optimizer.grid)

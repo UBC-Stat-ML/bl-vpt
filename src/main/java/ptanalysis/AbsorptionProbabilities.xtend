@@ -9,7 +9,6 @@ import static xlinear.MatrixOperations.*
 import xlinear.Matrix
 
 class AbsorptionProbabilities<S> {
-  
   val Indexer<S> index
   val Matrix B
   
@@ -55,6 +54,4 @@ class AbsorptionProbabilities<S> {
     }
     return result
   }
-  
-  
 }

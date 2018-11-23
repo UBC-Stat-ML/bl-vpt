@@ -3,29 +3,32 @@ package ptanalysis
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 import java.util.List
-import java.util.ArrayList
 import java.io.File
 import java.util.TreeMap
 import java.util.Map
+import blang.inits.DesignatedConstructor
+import blang.inits.Input
 
-class ApproxAcceptPrs { 
+class NormalEnergySwapPrs implements SwapPrs { 
   val TreeMap<Double, SummaryStatistics> moments
-  
-  new(File f) { this(moments(AcceptPrs::loadEnergies(f))) }
-  new(TreeMap<Double, SummaryStatistics> moments) {
-    this.moments = moments
-    // check it's valid
-    if (!moments.containsKey(0.0) || !moments.containsKey(1.0)) 
-      throw new RuntimeException
-  }
   
   /**
    * Estimate the acceptance probability between the two annealing parameters 
    * using a normal approximation of the energies, and where the means and variances 
    * of the energies are interpolated from Monte Carlo estimates.
    */
-  def double estimate(double param1, double param2) {
+  override double between(double param1, double param2) {
     acceptPr(param1, param2, mean(param1), mean(param2), variance(param1), variance(param2)) 
+  }
+  
+  @DesignatedConstructor
+  new(@Input String path) { this(new File(path)) }
+  new(File f) { this(moments(SwapStaticUtils::loadEnergies(f))) }
+  new(TreeMap<Double, SummaryStatistics> moments) {
+    this.moments = moments
+    // check it's valid
+    if (!moments.containsKey(0.0) || !moments.containsKey(1.0)) 
+      throw new RuntimeException
   }
   
   def double mean(double annealParam) { interpolate(annealParam, [mean]) }
@@ -72,18 +75,5 @@ class ApproxAcceptPrs {
     val result = STD_NORMAL.cumulativeProbability(m/s) + Math.exp(m + s*s/2.0) * STD_NORMAL.cumulativeProbability(-s - m/s)
     if (Double.isNaN(result)) throw new RuntimeException // get 0 + INF * 0.0 = NaN for large variances. 
     else return result
-  }
-  
-  def static void main(String [] args) {
-    val energies = AcceptPrs::loadEnergies(new File("/Users/bouchard/experiments/blang-mixture-tempering/work/55/1fdcf66051e25fba133d3be2af06d2/results/all/2018-11-13-22-28-19-LplqtyMI.exec/samples/energy.csv"))
-    val moments = moments(energies)
-    val annealParams = new ArrayList(energies.keySet)
-    for (i : 0 ..< annealParams.size) {
-      val p1 = annealParams.get(0)
-      val p2 = annealParams.get(i)
-      val mc = AcceptPrs::estimateSwapPr(p1, p2, energies.get(p1), energies.get(p2))
-      val approx = ApproxAcceptPrs::acceptPr(p1, p2, moments.get(p1).mean, moments.get(p2).mean, moments.get(p1).variance, moments.get(p2).variance) 
-      println('''mc=«mc» approx=«approx» mean=«moments.get(p2).mean» var=«moments.get(p2).variance»''')
-    }
   }
 }

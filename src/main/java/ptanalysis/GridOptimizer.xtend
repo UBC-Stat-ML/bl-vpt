@@ -13,7 +13,7 @@ import org.eclipse.xtend.lib.annotations.Data
 import org.apache.commons.math3.analysis.solvers.PegasusSolver
 
 @Data class GridOptimizer {
-  val ApproxAcceptPrs prs
+  val SwapPrs swapPrs
   val boolean reversible
   val List<Double> grid = new ArrayList
   
@@ -38,11 +38,11 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
   }
   
   def private double nextParam(double current, double alpha) {
-    if (prs.estimate(current, 1.0) > alpha) return 1.0
+    if (swapPrs.between(current, 1.0) > alpha) return 1.0
     val leftBound = current
     val rightBound = 1.0
     val UnivariateFunction objective = [
-      prs.estimate(current, it) - alpha
+      swapPrs.between(current, it) - alpha
     ]
     val solver = new PegasusSolver()
     return solver.solve(10_000, objective, leftBound, rightBound)
@@ -81,7 +81,7 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
   def double rejuvenationPr() { 
     val acceptPrs = new ArrayList<Double>
     for (i : 0 ..< grid.size - 1)
-      acceptPrs.add(prs.estimate(grid.get(i), grid.get(i+1)))
+      acceptPrs.add(swapPrs.between(grid.get(i), grid.get(i+1)))
     val mc = new TemperatureProcess(acceptPrs, reversible)
     return new AbsorptionProbabilities(mc).absorptionProbability(mc.initialState, mc.absorbingState(1))
   } 
