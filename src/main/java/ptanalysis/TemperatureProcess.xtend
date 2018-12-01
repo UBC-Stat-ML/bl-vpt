@@ -5,8 +5,10 @@ import org.eclipse.xtend.lib.annotations.Data
 import java.util.List
 
 /**
- * Generic type encodes (chain index, epsilon in {+1, -1})
- * For the reversible version, the epsilon is flipped at random at the end
+ * Generic type encodes a pair of the form (chain index, epsilon in {+1, -1})
+ * For the reversible version, the epsilon is flipped at random at the end of each 
+ * transition. It is useful to differentiate the state of just getting out of the 
+ * hot chain (the initial state) vs. getting absorbed back.
  */
 @Data class TemperatureProcess implements DiscreteMarkovChain<Pair<Integer,Integer>> {
   val List<Double> acceptPrs
@@ -29,12 +31,13 @@ import java.util.List
     // Keep track of where we came from when hitting the absorbing state
     // to differentiate between just getting out of 0 vs. getting absorbed
     // also when hitting the other end point
-    return proposedNext !== 0 && proposedNext !== absorbingState(1).key 
+    return proposedNext !== absorbingState(0).key && proposedNext !== absorbingState(1).key 
   }
   def static int flip(Random rand) {
     return if (rand.nextBernoulli(0.5)) 1 else -1
   }
   override absorbingState(int index) {
-    if (index == 0) 0 -> -1 else acceptPrs.size -> 1
+    if (index < 0 || index > 1) throw new RuntimeException
+    if (index === 0) 0 -> -1 else acceptPrs.size -> 1
   }
 }

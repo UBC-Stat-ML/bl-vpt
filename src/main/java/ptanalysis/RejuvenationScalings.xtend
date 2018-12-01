@@ -13,7 +13,7 @@ class RejuvenationScalings extends Experiment {
     for (target : (1..9).map[it as double/10.0]) {
       for (reversible : #[true, false]) {
         println("reversible = " + reversible)
-        val optimizer = new GridOptimizer(swapPrs, reversible)
+        val optimizer = new GridOptimizer(swapPrs, reversible, 1)
         optimizer.fromTargetAccept(target)
         println("nChains for target " + target + " is " + optimizer.grid.size)
         println("chain = " + optimizer.grid)
@@ -37,6 +37,10 @@ class RejuvenationScalings extends Experiment {
         curWriter.write(
           "method" -> "optimizeFromUniform",
           "rejuvenationPr" -> optimizer.rejuvenationPr) 
+        val starshotOptimized = GridOptimizer::optimizeStarshot(swapPrs, reversible, optimizer.grid.size)
+        curWriter.write(
+          "method" -> "starshot",
+          "rejuvenationPr" -> starshotOptimized.rejuvenationPr) 
       }
     }
   } 

@@ -11,15 +11,71 @@ import org.apache.commons.math3.optim.univariate.UnivariateObjectiveFunction;
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
 import org.apache.commons.math3.analysis.solvers.PegasusSolver
+import org.apache.commons.math3.exception.TooManyEvaluationsException
 
+/**
+ * See optimize()
+ */
 @Data class GridOptimizer {
+  
+  //// Data needed for optimization
   val SwapPrs swapPrs
   val boolean reversible
+  val int nHotChains // setting to > 1 corresponds to a Starshot sampler
+  
+  //// Variable
   val List<Double> grid = new ArrayList
   
+  /** Maximum number of iteration to perform the optimization. */
   int maxIterations = 100
   
+  /**
+   * Main purpose of this class: maximize the probability of 
+   * hitting the room temp from the hot chain (vs collapsing 
+   * back to the prior/hot chain). 
+   * Equivalent to fraction of samples coming from new initialization 
+   * in the parallel setting.
+   */
+  def void optimize() {
+    val lastIter = rejuvenationPr
+    for (iter : 0 .. maxIterations) {
+      for (i : 1..< grid.size - 1)
+        optimize(i)
+      if (Math.abs(lastIter - rejuvenationPr) < 0.001)
+        return
+    }
+  }
+  
+  //// Utility to optimize over number of hot chains as well
+  
+  def static GridOptimizer optimizeStarshot(SwapPrs swapPrs, boolean reversible, int totalNChains) {
+    var max = Double::NEGATIVE_INFINITY
+    var GridOptimizer argMax = null
+    for (nHotChains : 1 .. (totalNChains - 1)) {
+      val current = new GridOptimizer(swapPrs, reversible, nHotChains)
+      current.fromUniform(totalNChains - nHotChains + 1) 
+      try { 
+        current.optimize
+        if (current.rejuvenationPr > max) {
+          max = current.rejuvenationPr
+          argMax = current
+        }
+      }
+      catch (Exception tmee) {
+        System.err.println(tmee)
+        System.err.println("Warning search failed for totalNChains=" + totalNChains + ",nHotChains=" + nHotChains)
+      }
+    }
+    return argMax
+  }
+  
+  //// A few different ways to initialize the optimizer
+  
+  /**
+   * Initialize at equal spacings of the annealing parameters.
+   */
   def void fromUniform(int nChains) {
+    if (nChains <= 1) throw new RuntimeException
     grid.clear
     // initialize with equally spaced say
     val increment = 1.0 / (nChains - 1.0)
@@ -27,7 +83,14 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
       this.grid.add(i * increment)
   }
   
+  /**
+   * Initialize such that the accept probabilities is the given 
+   * input parameter
+   * 
+   * @param alpha Target accept rate
+   */
   def void fromTargetAccept(double alpha) {
+    if (alpha <= 0.0 || alpha >= 1.0) throw new RuntimeException
     grid.clear
     var currentParam = 0.0
     grid.add(currentParam)
@@ -35,8 +98,17 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
       currentParam = nextParam(currentParam, alpha) 
       grid.add(currentParam)     
     }
+    if (grid.size <= 1) throw new RuntimeException
   }
   
+  /**
+   * Used by fromTargetAccept to find a gap, started at current 
+   * such that the accept pr to the other end is alpha. 
+   * 
+   * Return the other end point of the gap, which will be 
+   * the next parameter in the grid
+   * (i.e. NOT the length)
+   */
   def private double nextParam(double current, double alpha) {
     if (swapPrs.between(current, 1.0) > alpha) return 1.0
     val leftBound = current
@@ -48,16 +120,9 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
     return solver.solve(10_000, objective, leftBound, rightBound)
   }
   
-  def void optimize() {
-    val lastIter = rejuvenationPr
-    for (iter : 0 .. maxIterations) {
-      for (i : 1..< grid.size - 1)
-        optimize(i)
-      if (Math.abs(lastIter - rejuvenationPr) < 0.001)
-        return
-    }
-  }
-  
+  /**
+   * Optimize a single grid separator.
+   */
   def void optimize(int gridPointIndex) {
     if (gridPointIndex === 0 || gridPointIndex == grid.size - 1)
       throw new RuntimeException("Cannot move extreme grid points")
@@ -78,10 +143,27 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
     grid.set(gridPointIndex, result)
   }
   
+  /**
+   * Compute the current value of the objective function, which 
+   * is the hitting probability described in optimize()
+   */
   def double rejuvenationPr() { 
+    if (grid.get(0) !== 0.0 || grid.get(grid.size - 1) !== 1.0)
+      throw new RuntimeException
     val acceptPrs = new ArrayList<Double>
-    for (i : 0 ..< grid.size - 1)
-      acceptPrs.add(swapPrs.between(grid.get(i), grid.get(i+1)))
+    for (i : 0 ..< grid.size - 1) {
+      // for the starshot, we will assume first grid 
+      val cur = grid.get(i)
+      val nxt = grid.get(i+1)
+      if (nxt <= cur) throw new RuntimeException
+      acceptPrs.add(swapPrs.between(cur, nxt))
+    }
+    if (nHotChains <= 0) throw new RuntimeException
+    if (nHotChains > 1)
+      switch swapPrs {
+        NormalEnergySwapPrs : acceptPrs.set(0, StarshotApproximations::acceptPr(swapPrs, grid.get(1), nHotChains))
+        default : throw new RuntimeException("Computation of StarshotApproximations, needed for nHotChains > 1, requires mean/variance of energy profile") 
+      }
     val mc = new TemperatureProcess(acceptPrs, reversible)
     return new AbsorptionProbabilities(mc).absorptionProbability(mc.initialState, mc.absorbingState(1))
   } 

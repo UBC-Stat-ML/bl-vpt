@@ -78,4 +78,6 @@ class SwapStaticUtils {
     }
     return result
   }
+  
+  private new() {}
 }
