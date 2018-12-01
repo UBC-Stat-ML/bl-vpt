@@ -11,7 +11,6 @@ import org.apache.commons.math3.optim.univariate.UnivariateObjectiveFunction;
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
 import org.apache.commons.math3.analysis.solvers.PegasusSolver
-import org.apache.commons.math3.exception.TooManyEvaluationsException
 
 /**
  * See optimize()
@@ -54,16 +53,10 @@ import org.apache.commons.math3.exception.TooManyEvaluationsException
     for (nHotChains : 1 .. (totalNChains - 1)) {
       val current = new GridOptimizer(swapPrs, reversible, nHotChains)
       current.fromUniform(totalNChains - nHotChains + 1) 
-      try { 
-        current.optimize
-        if (current.rejuvenationPr > max) {
-          max = current.rejuvenationPr
-          argMax = current
-        }
-      }
-      catch (Exception tmee) {
-        System.err.println(tmee)
-        System.err.println("Warning search failed for totalNChains=" + totalNChains + ",nHotChains=" + nHotChains)
+      current.optimize
+      if (current.rejuvenationPr > max) {
+        max = current.rejuvenationPr
+        argMax = current
       }
     }
     return argMax
