@@ -8,7 +8,7 @@ import static java.lang.Math.sqrt
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 
-class StarshotApproximations {
+class X1Approximations {
   
   def static double acceptPr(NormalEnergySwapPrs normalEnergies, double lukeWarmBeta, int nPriorReplica) {
     return acceptPr(

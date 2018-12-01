@@ -37,10 +37,10 @@ class RejuvenationScalings extends Experiment {
         curWriter.write(
           "method" -> "optimizeFromUniform",
           "rejuvenationPr" -> optimizer.rejuvenationPr) 
-        val starshotOptimized = GridOptimizer::optimizeStarshot(swapPrs, reversible, optimizer.grid.size)
+        val x1Optimized = GridOptimizer::optimizeX1(swapPrs, reversible, optimizer.grid.size)
         curWriter.write(
-          "method" -> "starshot",
-          "rejuvenationPr" -> starshotOptimized.rejuvenationPr) 
+          "method" -> "X1Move",
+          "rejuvenationPr" -> x1Optimized.rejuvenationPr) 
       }
     }
   } 

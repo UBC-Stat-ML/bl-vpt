@@ -20,7 +20,7 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
   //// Data needed for optimization
   val SwapPrs swapPrs
   val boolean reversible
-  val int nHotChains // setting to > 1 corresponds to a Starshot sampler
+  val int nHotChains // setting to > 1 corresponds to a X1 sampler
   
   //// Variable
   val List<Double> grid = new ArrayList
@@ -47,7 +47,7 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
   
   //// Utility to optimize over number of hot chains as well
   
-  def static GridOptimizer optimizeStarshot(SwapPrs swapPrs, boolean reversible, int totalNChains) {
+  def static GridOptimizer optimizeX1(SwapPrs swapPrs, boolean reversible, int totalNChains) {
     var max = Double::NEGATIVE_INFINITY
     var GridOptimizer argMax = null
     for (nHotChains : 1 .. (totalNChains - 1)) {
@@ -145,7 +145,7 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
       throw new RuntimeException
     val acceptPrs = new ArrayList<Double>
     for (i : 0 ..< grid.size - 1) {
-      // for the starshot, we will assume first grid 
+      // for the X1 move, we will assume first grid 
       val cur = grid.get(i)
       val nxt = grid.get(i+1)
       if (nxt <= cur) throw new RuntimeException
@@ -154,8 +154,8 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
     if (nHotChains <= 0) throw new RuntimeException
     if (nHotChains > 1)
       switch swapPrs {
-        NormalEnergySwapPrs : acceptPrs.set(0, StarshotApproximations::acceptPr(swapPrs, grid.get(1), nHotChains))
-        default : throw new RuntimeException("Computation of StarshotApproximations, needed for nHotChains > 1, requires mean/variance of energy profile") 
+        NormalEnergySwapPrs : acceptPrs.set(0, X1Approximations::acceptPr(swapPrs, grid.get(1), nHotChains))
+        default : throw new RuntimeException("Computation of X1, needed for nHotChains > 1, requires mean/variance of energy profile") 
       }
     val mc = new TemperatureProcess(acceptPrs, reversible)
     return new AbsorptionProbabilities(mc).absorptionProbability(mc.initialState, mc.absorbingState(1))
