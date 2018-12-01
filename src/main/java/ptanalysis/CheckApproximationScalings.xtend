@@ -67,6 +67,6 @@ class CheckApproximationScalings extends Experiment {
   }
   
   def static void main(String [] args) {
-    Experiment::start(args)
+    Experiment::startAutoExit(args)
   }
 }
