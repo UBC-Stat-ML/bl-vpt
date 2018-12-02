@@ -6,7 +6,7 @@ import blang.inits.Arg
 class RejuvenationScalings extends Experiment {
   
   @Arg
-  SwapPrs swapPrs 
+  Energies energies 
   
   override run() {
     val writer = results.getTabularWriter("output")
@@ -14,7 +14,7 @@ class RejuvenationScalings extends Experiment {
     for (target : (1..9).map[it as double/10.0]) {
       for (reversible : #[true, false]) {
         println("reversible = " + reversible)
-        val optimizer = new GridOptimizer(swapPrs, reversible, 1)
+        val optimizer = new GridOptimizer(energies, reversible, 1)
         optimizer.fromTargetAccept(target)
         println("nChains for target " + target + " is " + optimizer.grid.size)
         println("chain = " + optimizer.grid)
@@ -42,7 +42,7 @@ class RejuvenationScalings extends Experiment {
         curWriter.write(
           "method" -> "optimizeFromUniform",
           "rejuvenationPr" -> optimizer.rejuvenationPr) 
-        val x1Optimized = GridOptimizer::optimizeX1(swapPrs, reversible, optimizer.grid.size, curOptWriter)
+        val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, curOptWriter)
         curWriter.write(
           "method" -> "X1Move",
           "rejuvenationPr" -> x1Optimized.rejuvenationPr) 

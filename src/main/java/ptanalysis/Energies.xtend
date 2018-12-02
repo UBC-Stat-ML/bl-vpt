@@ -9,7 +9,7 @@ import java.util.Map
 import blang.inits.DesignatedConstructor
 import blang.inits.Input
 
-class NormalEnergySwapPrs implements SwapPrs { 
+class Energies { 
   val TreeMap<Double, SummaryStatistics> moments
   
   /**
@@ -17,8 +17,8 @@ class NormalEnergySwapPrs implements SwapPrs {
    * using a normal approximation of the energies, and where the means and variances 
    * of the energies are interpolated from Monte Carlo estimates.
    */
-  override double between(double param1, double param2) {
-    acceptPr(param1, param2, mean(param1), mean(param2), variance(param1), variance(param2)) 
+  def double swapAcceptPr(double param1, double param2) {
+    acceptPr(param1, param2, meanEnergy(param1), meanEnergy(param2), varianceEnergy(param1), varianceEnergy(param2)) 
   }
   
   @DesignatedConstructor
@@ -31,8 +31,8 @@ class NormalEnergySwapPrs implements SwapPrs {
       throw new RuntimeException
   }
   
-  def double mean(double annealParam) { interpolate(annealParam, [mean]) }
-  def double variance(double annealParam) { interpolate(annealParam, [variance]) }
+  def double meanEnergy(double annealParam) { interpolate(annealParam, [mean]) }
+  def double varianceEnergy(double annealParam) { interpolate(annealParam, [variance]) }
   
   def private double interpolate(double annealParam, (SummaryStatistics) => double stat /* mean or variance */) {
     check(annealParam)

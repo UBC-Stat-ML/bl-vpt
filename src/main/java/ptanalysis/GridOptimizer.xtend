@@ -19,7 +19,7 @@ import blang.inits.experiments.tabwriters.TabularWriter
 @Data class GridOptimizer {
   
   //// Data needed for optimization
-  val SwapPrs swapPrs
+  val Energies energies
   val boolean reversible
   val int nHotChains // setting to > 1 corresponds to a X1 sampler
   
@@ -48,14 +48,14 @@ import blang.inits.experiments.tabwriters.TabularWriter
   
   //// Utility to optimize over number of hot chains as well
   
-  def static GridOptimizer optimizeX1(SwapPrs swapPrs, boolean reversible, int totalNChains) {
+  def static GridOptimizer optimizeX1(Energies swapPrs, boolean reversible, int totalNChains) {
     optimizeX1(swapPrs, reversible, totalNChains, null)
   }
-  def static GridOptimizer optimizeX1(SwapPrs swapPrs, boolean reversible, int totalNChains, TabularWriter writer) {
+  def static GridOptimizer optimizeX1(Energies energies, boolean reversible, int totalNChains, TabularWriter writer) {
     var max = Double::NEGATIVE_INFINITY
     var GridOptimizer argMax = null
     for (nHotChains : 1 .. (totalNChains - 1)) {
-      val current = new GridOptimizer(swapPrs, reversible, nHotChains)
+      val current = new GridOptimizer(energies, reversible, nHotChains)
       current.fromUniform(totalNChains - nHotChains + 1) 
       current.optimize
       val pr = current.rejuvenationPr
@@ -112,11 +112,11 @@ import blang.inits.experiments.tabwriters.TabularWriter
    * (i.e. NOT the length)
    */
   def private double nextParam(double current, double alpha) {
-    if (swapPrs.between(current, 1.0) > alpha) return 1.0
+    if (energies.swapAcceptPr(current, 1.0) > alpha) return 1.0
     val leftBound = current
     val rightBound = 1.0
     val UnivariateFunction objective = [
-      swapPrs.between(current, it) - alpha
+      energies.swapAcceptPr(current, it) - alpha
     ]
     val solver = new PegasusSolver()
     return solver.solve(10_000, objective, leftBound, rightBound)
@@ -158,14 +158,11 @@ import blang.inits.experiments.tabwriters.TabularWriter
       val cur = grid.get(i)
       val nxt = grid.get(i+1)
       if (nxt <= cur) throw new RuntimeException
-      acceptPrs.add(swapPrs.between(cur, nxt))
+      acceptPrs.add(energies.swapAcceptPr(cur, nxt))
     }
     if (nHotChains <= 0) throw new RuntimeException
     if (nHotChains > 1)
-      switch swapPrs {
-        NormalEnergySwapPrs : acceptPrs.set(0, X1Approximations::acceptPr(swapPrs, grid.get(1), nHotChains))
-        default : throw new RuntimeException("Computation of X1, needed for nHotChains > 1, requires mean/variance of energy profile") 
-      }
+      acceptPrs.set(0, X1Approximations::acceptPr(energies, grid.get(1), nHotChains))
     val mc = new TemperatureProcess(acceptPrs, reversible)
     return new AbsorptionProbabilities(mc).absorptionProbability(mc.initialState, mc.absorbingState(1))
   } 

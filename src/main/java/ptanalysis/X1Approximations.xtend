@@ -10,10 +10,10 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 
 class X1Approximations {
   
-  def static double acceptPr(NormalEnergySwapPrs normalEnergies, double lukeWarmBeta, int nPriorReplica) {
+  def static double acceptPr(Energies energies, double lukeWarmBeta, int nPriorReplica) {
     return acceptPr(
-      normalEnergies.mean(0.0), normalEnergies.variance(0.0), 
-      normalEnergies.mean(lukeWarmBeta), normalEnergies.variance(lukeWarmBeta),
+      energies.meanEnergy(0.0), energies.varianceEnergy(0.0), 
+      energies.meanEnergy(lukeWarmBeta), energies.varianceEnergy(lukeWarmBeta),
       lukeWarmBeta,
       nPriorReplica
     )

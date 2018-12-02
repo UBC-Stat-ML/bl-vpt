@@ -16,7 +16,7 @@ class CheckApproximationScalings extends Experiment {
   override run() {
     val writer = results.getTabularWriter("output")
     val energies = SwapStaticUtils::preprocessedEnergies(energyFile)
-    val normalApprox = new NormalEnergySwapPrs(energyFile)
+    val normalApprox = new Energies(energyFile)
     for (target : (0..10).map[it as double/10.0]) {
       val indicesAndAcceptPrs = SwapStaticUtils::equallySpacedAcceptPrs(energies, target)
       val approxPrs = approxPrs(indicesAndAcceptPrs, normalApprox, energies.keySet)
@@ -43,7 +43,7 @@ class CheckApproximationScalings extends Experiment {
     }
   }
   
-  def List<Double> approxPrs(List<Pair<Integer,Double>> indicesAndAcceptPrs, NormalEnergySwapPrs prs, Set<Double> annealParamsSet) {
+  def List<Double> approxPrs(List<Pair<Integer,Double>> indicesAndAcceptPrs, Energies prs, Set<Double> annealParamsSet) {
     val annealParams = new ArrayList(annealParamsSet)
     Collections::sort(annealParams)
     val result = new ArrayList
@@ -51,7 +51,7 @@ class CheckApproximationScalings extends Experiment {
     val writer = results.getTabularWriter("all-prs")
     for (indexAndPr : indicesAndAcceptPrs) {
       val nextAnnealParam = annealParams.get(indexAndPr.key)
-      val approx = prs.between(currentAnnealParam, nextAnnealParam)
+      val approx = prs.swapAcceptPr(currentAnnealParam, nextAnnealParam)
       result.add(approx)
       currentAnnealParam = nextAnnealParam
       // report that accept pr for the two methods
