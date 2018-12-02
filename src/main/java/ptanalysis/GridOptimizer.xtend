@@ -37,6 +37,7 @@ import blang.inits.experiments.tabwriters.TabularWriter
    * in the parallel setting.
    */
   def void optimize() {
+    if (grid.empty) throw new RuntimeException("Call first an initializer (see initializeXXX)")
     val lastIter = rejuvenationPr
     for (iter : 0 .. maxIterations) {
       for (i : 1..< grid.size - 1)
@@ -44,6 +45,14 @@ import blang.inits.experiments.tabwriters.TabularWriter
       if (Math.abs(lastIter - rejuvenationPr) < 0.001)
         return
     }
+  }
+  
+  def void outputGrid(TabularWriter writer) {
+    for (i : 0 ..< grid.size)
+      writer.write(
+        "gridIndex" -> i,
+        "annealParam" -> grid.get(i)
+      )
   }
   
   //// Utility to optimize over number of hot chains as well
@@ -56,7 +65,7 @@ import blang.inits.experiments.tabwriters.TabularWriter
     var GridOptimizer argMax = null
     for (nHotChains : 1 .. (totalNChains - 1)) {
       val current = new GridOptimizer(energies, reversible, nHotChains)
-      current.fromUniform(totalNChains - nHotChains + 1) 
+      current.initializedToUniform(totalNChains - nHotChains + 1) 
       current.optimize
       val pr = current.rejuvenationPr
       if (writer !== null) writer.write(
@@ -76,7 +85,7 @@ import blang.inits.experiments.tabwriters.TabularWriter
   /**
    * Initialize at equal spacings of the annealing parameters.
    */
-  def void fromUniform(int nChains) {
+  def void initializedToUniform(int nChains) {
     if (nChains <= 1) throw new RuntimeException
     grid.clear
     // initialize with equally spaced say
@@ -91,13 +100,13 @@ import blang.inits.experiments.tabwriters.TabularWriter
    * 
    * @param alpha Target accept rate
    */
-  def void fromTargetAccept(double alpha) {
-    if (alpha <= 0.0 || alpha >= 1.0) throw new RuntimeException
+  def void initializeViaTargetSwapAcceptProbability(double targetSwapAcceptPr) {
+    if (targetSwapAcceptPr <= 0.0 || targetSwapAcceptPr >= 1.0) throw new RuntimeException
     grid.clear
     var currentParam = 0.0
     grid.add(currentParam)
     while (currentParam < 1.0) {
-      currentParam = nextParam(currentParam, alpha) 
+      currentParam = nextParam(currentParam, targetSwapAcceptPr) 
       grid.add(currentParam)     
     }
     if (grid.size <= 1) throw new RuntimeException
@@ -111,12 +120,12 @@ import blang.inits.experiments.tabwriters.TabularWriter
    * the next parameter in the grid
    * (i.e. NOT the length)
    */
-  def private double nextParam(double current, double alpha) {
-    if (energies.swapAcceptPr(current, 1.0) > alpha) return 1.0
+  def private double nextParam(double current, double targetSwapAcceptPr) {
+    if (energies.swapAcceptPr(current, 1.0) > targetSwapAcceptPr) return 1.0
     val leftBound = current
     val rightBound = 1.0
     val UnivariateFunction objective = [
-      energies.swapAcceptPr(current, it) - alpha
+      energies.swapAcceptPr(current, it) - targetSwapAcceptPr
     ]
     val solver = new PegasusSolver()
     return solver.solve(10_000, objective, leftBound, rightBound)
