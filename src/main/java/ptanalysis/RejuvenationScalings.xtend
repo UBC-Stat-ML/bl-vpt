@@ -10,6 +10,7 @@ class RejuvenationScalings extends Experiment {
   
   override run() {
     val writer = results.getTabularWriter("output")
+    val x1optimization = results.getTabularWriter("x1optimization")
     for (target : (1..9).map[it as double/10.0]) {
       for (reversible : #[true, false]) {
         println("reversible = " + reversible)
@@ -18,6 +19,10 @@ class RejuvenationScalings extends Experiment {
         println("nChains for target " + target + " is " + optimizer.grid.size)
         println("chain = " + optimizer.grid)
         val curWriter = writer
+          .child("reversible", reversible)
+          .child("nChains", optimizer.grid.size)
+          .child("targetAccept", target)
+        val curOptWriter = x1optimization
           .child("reversible", reversible)
           .child("nChains", optimizer.grid.size)
           .child("targetAccept", target)
@@ -37,7 +42,7 @@ class RejuvenationScalings extends Experiment {
         curWriter.write(
           "method" -> "optimizeFromUniform",
           "rejuvenationPr" -> optimizer.rejuvenationPr) 
-        val x1Optimized = GridOptimizer::optimizeX1(swapPrs, reversible, optimizer.grid.size)
+        val x1Optimized = GridOptimizer::optimizeX1(swapPrs, reversible, optimizer.grid.size, curOptWriter)
         curWriter.write(
           "method" -> "X1Move",
           "rejuvenationPr" -> x1Optimized.rejuvenationPr) 

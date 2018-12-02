@@ -11,6 +11,7 @@ import org.apache.commons.math3.optim.univariate.UnivariateObjectiveFunction;
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
 import org.apache.commons.math3.analysis.solvers.PegasusSolver
+import blang.inits.experiments.tabwriters.TabularWriter
 
 /**
  * See optimize()
@@ -48,14 +49,22 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
   //// Utility to optimize over number of hot chains as well
   
   def static GridOptimizer optimizeX1(SwapPrs swapPrs, boolean reversible, int totalNChains) {
+    optimizeX1(swapPrs, reversible, totalNChains, null)
+  }
+  def static GridOptimizer optimizeX1(SwapPrs swapPrs, boolean reversible, int totalNChains, TabularWriter writer) {
     var max = Double::NEGATIVE_INFINITY
     var GridOptimizer argMax = null
     for (nHotChains : 1 .. (totalNChains - 1)) {
       val current = new GridOptimizer(swapPrs, reversible, nHotChains)
       current.fromUniform(totalNChains - nHotChains + 1) 
       current.optimize
-      if (current.rejuvenationPr > max) {
-        max = current.rejuvenationPr
+      val pr = current.rejuvenationPr
+      if (writer !== null) writer.write(
+        "nHotChains" -> nHotChains,
+        "rejuvenationPr" -> pr
+      )
+      if (pr > max) {
+        max = pr
         argMax = current
       }
     }
