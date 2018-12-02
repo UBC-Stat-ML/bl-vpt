@@ -8,9 +8,15 @@ import java.util.TreeMap
 import java.util.Map
 import blang.inits.DesignatedConstructor
 import blang.inits.Input
+import blang.inits.Arg
+import blang.inits.DefaultValue
 
 class Energies { 
   val TreeMap<Double, SummaryStatistics> moments
+  
+  @Arg(description = "Create artificial replicates of state space for asymptotic analysis purpose")          
+                @DefaultValue("1")
+  public var int nReplicates = 1
   
   /**
    * Estimate the acceptance probability between the two annealing parameters 
@@ -31,8 +37,8 @@ class Energies {
       throw new RuntimeException
   }
   
-  def double meanEnergy(double annealParam) { interpolate(annealParam, [mean]) }
-  def double varianceEnergy(double annealParam) { interpolate(annealParam, [variance]) }
+  def double meanEnergy(double annealParam) {     nReplicates * interpolate(annealParam, [mean]) }
+  def double varianceEnergy(double annealParam) { nReplicates * interpolate(annealParam, [variance]) }
   
   def private double interpolate(double annealParam, (SummaryStatistics) => double stat /* mean or variance */) {
     check(annealParam)
