@@ -83,15 +83,16 @@ class Energies {
     val s = Math.sqrt(variance)
     val a = Math.exp(m + s*s/2.0)
     val b = STD_NORMAL.cumulativeProbability(-s - m/s)
-    val result = STD_NORMAL.cumulativeProbability(m/s) + a * b
-    if ((Double.isInfinite(a) && b === 0) || (Double.isInfinite(b) && a === 0)) {
+    val c = STD_NORMAL.cumulativeProbability(m/s)
+    val result =  a * b + c
+    if (!Double.isFinite(a) || !Double.isFinite(b) || !Double.isFinite(c)) {
       // when both the mean and variance are large, numerical problem can occur
       // then use the bound E(min{1, e^A}) >= P(A >= 0)
       val cdf = new NormalDistribution(m, s).cumulativeProbability(0.0)
       if (Double.isNaN(cdf) || Double.isInfinite(cdf))
         throw new RuntimeException
       return 1.0 - cdf
-    } else if (Double.isNaN(result))
+    } else if (!(result >= 0.0 && result <= 1.0))
       throw new RuntimeException
     else return result
   }
