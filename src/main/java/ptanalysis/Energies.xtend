@@ -10,6 +10,8 @@ import blang.inits.DesignatedConstructor
 import blang.inits.Input
 import blang.inits.Arg
 import blang.inits.DefaultValue
+import org.apache.commons.math3.special.Erf
+import bayonet.math.NumericalUtils
 
 class Energies { 
   val TreeMap<Double, SummaryStatistics> moments
@@ -74,12 +76,51 @@ class Energies {
     return acceptPr(deltaAnneal * (mean2 - mean1), deltaAnneal * deltaAnneal * (variance1 + variance2))
   }
   
-  val static STD_NORMAL = new NormalDistribution(0.0, 1.0)
+  /**
+   * Approximation of E(min{1, e^A}) for A ~ Normal(m, variance) from 
+   * Roberts et al. 1997, Proposition 2.4
+   */
   def private static double acceptPr(double m, double variance) {
     if (variance <= 0.0) throw new RuntimeException
     val s = Math.sqrt(variance)
-    val result = STD_NORMAL.cumulativeProbability(m/s) + Math.exp(m + s*s/2.0) * STD_NORMAL.cumulativeProbability(-s - m/s)
-    if (Double.isNaN(result)) throw new RuntimeException // get 0 + INF * 0.0 = NaN for large variances. 
+    val a = Math.exp(m + s*s/2.0)
+    val b = STD_NORMAL.cumulativeProbability(-s - m/s)
+    val result = STD_NORMAL.cumulativeProbability(m/s) + a * b
+    if ((Double.isInfinite(a) && b === 0) || (Double.isInfinite(b) && a === 0)) {
+      // when both the mean and variance are large, numerical problem can occur
+      // then use the bound E(min{1, e^A}) >= P(A >= 0)
+      val cdf = new NormalDistribution(m, s).cumulativeProbability(0.0)
+      if (Double.isNaN(cdf) || Double.isInfinite(cdf))
+        throw new RuntimeException
+      return 1.0 - cdf
+      //throw new RuntimeException("estimate=" + (1.0 - estimate.cumulativeProbability(1.0)) + "m=" + m + ", var=" + variance + ", Math.exp(m + s*s/2.0)=" + Math.exp(m + s*s/2.0) + ", cdf(x)=" + STD_NORMAL.cumulativeProbability(-s - m/s) + ", x=" + (-s - m/s)) // get 0 + INF * 0.0 = NaN for large variances. 
+    } else if (Double.isNaN(result))
+      throw new RuntimeException
     else return result
+  }
+  val static STD_NORMAL = new NormalDistribution(0.0, 1.0)
+  
+//  def static double logErf(double x) {
+//    val t = 1.0 / (1.0 + p * x)
+//    val poly = a1 * t + a2 * t * t + a3 * t * t * t
+//    val prod = Math.log(poly) - x * x
+//    return NumericalUtils.logAdd(0.0, -prod)
+//  }
+//  
+  static val p  = 0.47047
+  static val a1 = 0.3480242
+  static val a2 = -0.0958798
+  static val a3 = 0.7478556
+  def static void main(String [] args) {
+    for (i : 0 .. 10) {
+      val x = -Math.pow(2, i)
+      val t = 1.0 / (1.0 + p * x)
+      val approx = 1.0 - (a1 * t + a2 * t * t + a3 * t * t * t) * Math.exp(- x * x)
+      val exact = Erf.erf(x)
+      println(approx)
+      println(exact)
+      println(Math.abs(approx - exact) / exact)
+      println("--")
+    }
   }
 }
