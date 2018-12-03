@@ -10,8 +10,6 @@ import blang.inits.DesignatedConstructor
 import blang.inits.Input
 import blang.inits.Arg
 import blang.inits.DefaultValue
-import org.apache.commons.math3.special.Erf
-import bayonet.math.NumericalUtils
 
 class Energies { 
   val TreeMap<Double, SummaryStatistics> moments
@@ -93,34 +91,9 @@ class Energies {
       if (Double.isNaN(cdf) || Double.isInfinite(cdf))
         throw new RuntimeException
       return 1.0 - cdf
-      //throw new RuntimeException("estimate=" + (1.0 - estimate.cumulativeProbability(1.0)) + "m=" + m + ", var=" + variance + ", Math.exp(m + s*s/2.0)=" + Math.exp(m + s*s/2.0) + ", cdf(x)=" + STD_NORMAL.cumulativeProbability(-s - m/s) + ", x=" + (-s - m/s)) // get 0 + INF * 0.0 = NaN for large variances. 
     } else if (Double.isNaN(result))
       throw new RuntimeException
     else return result
   }
   val static STD_NORMAL = new NormalDistribution(0.0, 1.0)
-  
-//  def static double logErf(double x) {
-//    val t = 1.0 / (1.0 + p * x)
-//    val poly = a1 * t + a2 * t * t + a3 * t * t * t
-//    val prod = Math.log(poly) - x * x
-//    return NumericalUtils.logAdd(0.0, -prod)
-//  }
-//  
-  static val p  = 0.47047
-  static val a1 = 0.3480242
-  static val a2 = -0.0958798
-  static val a3 = 0.7478556
-  def static void main(String [] args) {
-    for (i : 0 .. 10) {
-      val x = -Math.pow(2, i)
-      val t = 1.0 / (1.0 + p * x)
-      val approx = 1.0 - (a1 * t + a2 * t * t + a3 * t * t * t) * Math.exp(- x * x)
-      val exact = Erf.erf(x)
-      println(approx)
-      println(exact)
-      println(Math.abs(approx - exact) / exact)
-      println("--")
-    }
-  }
 }

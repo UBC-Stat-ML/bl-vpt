@@ -170,8 +170,11 @@ import blang.inits.experiments.tabwriters.TabularWriter
       acceptPrs.add(energies.swapAcceptPr(cur, nxt))
     }
     if (nHotChains <= 0) throw new RuntimeException
-    if (nHotChains > 1)
-      acceptPrs.set(0, X1Approximations::acceptPr(energies, grid.get(1), nHotChains))
+    if (nHotChains > 1) {
+      val x1Approx = X1Approximations::acceptPr(energies, grid.get(1), nHotChains)
+      if ((x1Approx >= 0.0 && x1Approx <= 1.0)) // guard against numerical instabilities
+        acceptPrs.set(0, x1Approx)
+    }
     val mc = new TemperatureProcess(acceptPrs, reversible)
     return new AbsorptionProbabilities(mc).absorptionProbability(mc.initialState, mc.absorbingState(1))
   } 
