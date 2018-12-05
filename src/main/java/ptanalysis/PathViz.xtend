@@ -21,25 +21,22 @@ class PathViz extends Viz {
   }
   
   override protected draw() {
-    pushStyle
     strokeWeight(0.05f)
-    val from = color(204, 102, 0);
-    val to = color(0, 102, 153);
     for (c : 0 ..< paths.nChains) {
-      val inter = lerpColor(from, to, 1.0f * c / paths.nChains)
-      stroke(inter)
+      setColour(c)
       val path = paths.get(c)
       for (i : 1 ..< paths.nIterations)
         line((i-1), path.get(i-1) + 0.5f, i, path.get(i) + 0.5f)
     }
-    popStyle
   }
   
-  override protected privateSize() {
-    new PrivateSize(paths.nIterations, paths.nChains)
+  val from = color(204, 102, 0)
+  val to = color(0, 102, 153)
+  def void setColour(int chainIndex) {
+    val interpolated = lerpColor(from, to, 1.0f * chainIndex / paths.nChains)
+    stroke(interpolated)
   }
   
-  static def void main(String [] args) {
-    Experiment::start(args) 
-  }
+  override protected privateSize() { new PrivateSize(paths.nIterations, paths.nChains) }
+  static def void main(String [] args) { Experiment::start(args) }
 }

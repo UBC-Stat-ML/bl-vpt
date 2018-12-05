@@ -12,6 +12,7 @@ import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
 import org.apache.commons.math3.analysis.solvers.PegasusSolver
 import blang.inits.experiments.tabwriters.TabularWriter
+import java.util.Collection
 
 /**
  * See optimize()
@@ -110,6 +111,17 @@ import blang.inits.experiments.tabwriters.TabularWriter
       grid.add(currentParam)     
     }
     if (grid.size <= 1) throw new RuntimeException
+  }
+  
+  /**
+   * Copies, sorts and checks end points are 0.0 and 1.0. 
+   */
+  def void initialize(Collection<Double> initGrid) {
+    grid.clear
+    grid.addAll(initGrid)
+    grid.sort
+    if (grid.get(0) != 0.0 || grid.get(grid.size - 1) != 1.0)
+      throw new RuntimeException
   }
   
   /**

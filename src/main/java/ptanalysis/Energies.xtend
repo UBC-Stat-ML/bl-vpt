@@ -10,8 +10,10 @@ import blang.inits.DesignatedConstructor
 import blang.inits.Input
 import blang.inits.Arg
 import blang.inits.DefaultValue
+import org.eclipse.xtend.lib.annotations.Accessors
 
-class Energies { 
+class Energies {
+  @Accessors(PUBLIC_GETTER) 
   val TreeMap<Double, SummaryStatistics> moments
   
   @Arg(description = "Create artificial replicates of state space for asymptotic analysis purpose")          

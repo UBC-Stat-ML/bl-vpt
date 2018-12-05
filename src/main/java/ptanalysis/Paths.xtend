@@ -15,9 +15,30 @@ class Paths {
   /**
    * The list of temperature indices visited by the particle started 
    * at the given input chain index.
+   * 
+   * Index 0 is room temperature chain.
    */
   def List<Integer> get(int chainIndexAtBeginning) {
     return paths.get(chainIndexAtBeginning)
+  }
+  
+  def int nRejuvenations() {
+    var count = 0
+    for (chain : 0 ..< nChains)
+      count += nRejuvenations(chain)
+    return count
+  }
+  
+  private def int nRejuvenations(int chainIndexAtBeginning) {
+    var newSample = false
+    var count = 0
+    for (state : get(chainIndexAtBeginning)) 
+      if (state == 0 && newSample) {
+        newSample = false
+        count++
+      } else if (state == nChains - 1) 
+        newSample = true
+    return count
   }
   
   def int nChains() { return paths.size }
