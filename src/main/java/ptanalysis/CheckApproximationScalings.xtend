@@ -7,6 +7,7 @@ import java.util.List
 import java.util.ArrayList
 import java.util.Set
 import java.util.Collections
+import blang.inits.experiments.tabwriters.TabularWriter
 
 class CheckApproximationScalings extends Experiment {
   
@@ -25,22 +26,17 @@ class CheckApproximationScalings extends Experiment {
           .child("reversible", reversible)
           .child("targetAccept", target)
           .child("nChains", (indicesAndAcceptPrs.size + 1))
-        {
-          val mcFromMc = new TemperatureProcess(indicesAndAcceptPrs.map[value].toList, reversible)
-          val absorbFromMc = new AbsorptionProbabilities(mcFromMc)
-          curWriter.write(
-            "method" -> "MC",
-            "value" -> absorbFromMc.absorptionProbability(mcFromMc.initialState, mcFromMc.absorbingState(1)))
-        }
-        {
-          val mcFromApprox = new TemperatureProcess(approxPrs, reversible)
-          val absorbFromApprox = new AbsorptionProbabilities(mcFromApprox)
-          curWriter.write(
-            "method" -> "normalApprox",
-            "value" -> absorbFromApprox.absorptionProbability(mcFromApprox.initialState, mcFromApprox.absorbingState(1)))
-        }
+        record("MC", new TemperatureProcess(indicesAndAcceptPrs.map[value].toList, reversible), curWriter)
+        record("normalApprox", new TemperatureProcess(approxPrs, reversible), curWriter)
       }
     }
+  }
+  
+  private static def void record(String method, TemperatureProcess process, TabularWriter writer) {
+    val prs = new AbsorptionProbabilities(process)
+    writer.write(
+      "method" -> method,
+      "value" -> prs.absorptionProbability(process.initialState, process.absorbingState(1)))
   }
   
   def List<Double> approxPrs(List<Pair<Integer,Double>> indicesAndAcceptPrs, Energies prs, Set<Double> annealParamsSet) {
