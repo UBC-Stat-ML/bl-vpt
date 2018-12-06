@@ -26,7 +26,7 @@ class RejuvationEstimates extends Experiment {
   def double normalApproximation(Energies energies) {
     val opt = new GridOptimizer(energies, reversible, nHotChains)
     opt.initialize(energies.moments.keySet)
-    return opt.rejuvenationPr
+    return opt.rejuvenationPr / 2.0 // divide by 2.0 since only half of odd-even moves have an opportunity to rejuvenate
   }
   
   def void record(String method, double rejuvenationRate) {
