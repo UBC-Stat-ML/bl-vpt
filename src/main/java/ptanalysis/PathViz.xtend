@@ -30,9 +30,9 @@ class PathViz extends Viz {
     }
   }
   
-  val from = color(204, 102, 0)
-  val to = color(0, 102, 153)
   def void setColour(int chainIndex) {
+    val from = color(204, 102, 0)
+    val to = color(0, 102, 153)
     val interpolated = lerpColor(from, to, 1.0f * chainIndex / paths.nChains)
     stroke(interpolated)
   }
