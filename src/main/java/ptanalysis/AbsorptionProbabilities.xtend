@@ -6,42 +6,45 @@ import bayonet.distributions.ExhaustiveDebugRandom
 
 import static extension xlinear.MatrixExtensions.*
 import static xlinear.MatrixOperations.*
-import xlinear.Matrix
+import org.apache.commons.lang3.time.StopWatch
 
 class AbsorptionProbabilities<S> {
-  val Indexer<S> index
-  val Matrix B
   
-  new(DiscreteMarkovChain<S> chain) {
-    index = index(chain, chain.absorbingState(0), chain.absorbingState(1))
-    val P = dense(index.size, index.size)
+  /**
+   * Compute pr hit chain.abs(1)
+   */
+  def static <S> double compute(DiscreteMarkovChain<S> chain) {
+    val index = indexLinearSystem(chain) 
+    val M = sparse(index.size, index.size)
+    val b = sparse(index.size, 1)
     for (current : index.objects) {
       val i = index.o2i(current)
+      M.increment(i, i, -1)
       val random = new ExhaustiveDebugRandom
       while (random.hasNext) {
         val next = chain.sample(current, random)
-        val j = index.o2i(next)
-        P.increment(i, j, random.lastProbability)
+        val pr = random.lastProbability
+        if (next == chain.absorbingState(0)) {
+          // nothing to do
+        } else if (next == chain.absorbingState(1)) {
+          b.increment(i, - pr)
+        } else {
+          val j = index.o2i(next)
+          M.increment(i, j, pr)
+        }
       }
     }
-    val Q = P.slice(2, index.size, 2, index.size)
-    val N = (identity(index.size - 2) - Q).inverse
-    val R = P.slice(2, index.size, 0, 2)
-    this.B = N * R
+//    println("M=\n" +M)
+    val soln = M.lu.solve(b)
+//    println("b=\n" + b)
+//    println("x=\n" + soln)
+    return soln.get(index.o2i(chain.initialState)) 
   }
   
-  def double absorptionProbability(S start, S end) {
-    val j = index.o2i(end)
-    if (j !== 0 && j !== 1) throw new RuntimeException("" + end + " is not one of the two analysed absorbing states.")
-    val i = index.o2i(start) - 2
-    return B.get(i,j)
-  }
-  
-  /**
-   * Indexing guarantees absorbing states s0 and s1 are indexed 0 and 1
-   */
-  def private static <S> Indexer<S> index(DiscreteMarkovChain<S> chain, S s0, S s1) {
-    val result = new Indexer<S> => [ addToIndex(s0, s1) ]
+  def private static <S> Indexer<S> indexLinearSystem(DiscreteMarkovChain<S> chain) {
+    val result = new Indexer<S> 
+    val s0 = chain.absorbingState(0)
+    val s1 = chain.absorbingState(1) 
     val queue = new LinkedList => [ add(chain.initialState) ]
     while (!queue.empty) {
       val current = queue.poll
@@ -49,9 +52,23 @@ class AbsorptionProbabilities<S> {
       val random = new ExhaustiveDebugRandom
       while (random.hasNext) {
         val next = chain.sample(current, random)
-        if (!result.containsObject(next)) queue.add(next)
+        if (!result.containsObject(next) && next != s0 && next != s1) queue.add(next)
       }
     }
     return result
+  }
+  
+  
+  def static void main(String [] args) {
+    val p = "/Users/bouchard/experiments/ptanalysis-nextflow/work/f6/5b6eb6e79dc9ea435be9ec762f5b06/multiBenchmark/work/8b/b41a6750f9cef69c97747561b72ddd/results/all/2018-12-04-10-06-42-HVSzp8mU.exec/samples/energy.csv"
+    val go = new GridOptimizer(new Energies(p), false, 1)    
+    for (nChains : (1..10).map[Math::pow(2, it) as int]) 
+      for (useOld : #[true, false]) {
+        GridOptimizer::useOld = useOld
+        val timer = new StopWatch => [start]
+        go.initializedToUniform(nChains)
+        val pr = go.rejuvenationPr
+        println('''«useOld», «nChains», «timer.time», «pr»''')
+    }
   }
 }

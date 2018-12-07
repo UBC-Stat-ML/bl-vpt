@@ -33,7 +33,7 @@ class CheckApproximationScalings extends Experiment {
   }
   
   private static def void record(String method, TemperatureProcess process, TabularWriter writer) {
-    val prs = new AbsorptionProbabilities(process)
+    val prs = new AbsPrsOld(process)
     writer.write(
       "method" -> method,
       "value" -> prs.absorptionProbability(process.initialState, process.absorbingState(1)))
