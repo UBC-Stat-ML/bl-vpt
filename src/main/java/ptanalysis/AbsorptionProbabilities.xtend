@@ -6,7 +6,6 @@ import bayonet.distributions.ExhaustiveDebugRandom
 
 import static extension xlinear.MatrixExtensions.*
 import static xlinear.MatrixOperations.*
-import org.apache.commons.lang3.time.StopWatch
 
 class AbsorptionProbabilities<S> {
   
@@ -34,10 +33,7 @@ class AbsorptionProbabilities<S> {
         }
       }
     }
-//    println("M=\n" +M)
     val soln = M.lu.solve(b)
-//    println("b=\n" + b)
-//    println("x=\n" + soln)
     return soln.get(index.o2i(chain.initialState)) 
   }
   
@@ -56,19 +52,5 @@ class AbsorptionProbabilities<S> {
       }
     }
     return result
-  }
-  
-  
-  def static void main(String [] args) {
-    val p = "/Users/bouchard/experiments/ptanalysis-nextflow/work/f6/5b6eb6e79dc9ea435be9ec762f5b06/multiBenchmark/work/8b/b41a6750f9cef69c97747561b72ddd/results/all/2018-12-04-10-06-42-HVSzp8mU.exec/samples/energy.csv"
-    val go = new GridOptimizer(new Energies(p), false, 1)    
-    for (nChains : (1..10).map[Math::pow(2, it) as int]) 
-      for (useOld : #[true, false]) {
-        GridOptimizer::useOld = useOld
-        val timer = new StopWatch => [start]
-        go.initializedToUniform(nChains)
-        val pr = go.rejuvenationPr
-        println('''«useOld», «nChains», «timer.time», «pr»''')
-    }
   }
 }

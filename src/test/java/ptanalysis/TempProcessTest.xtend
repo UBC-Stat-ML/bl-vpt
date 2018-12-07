@@ -12,8 +12,7 @@ class TempProcessTest {
     val prs = #[pr]
     for (rev : #[true, false]) {
       val mc = new TemperatureProcess(prs, rev)
-      val abs = new AbsorptionProbabilities(mc)
-      Assert.assertEquals(pr, abs.absorptionProbability(mc.initialState, mc.absorbingState(1)), NumericalUtils::THRESHOLD)
+      Assert.assertEquals(pr, AbsorptionProbabilities::compute(mc), NumericalUtils::THRESHOLD)
     }
   }
 }

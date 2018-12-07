@@ -191,25 +191,7 @@ import java.util.Collection
         throw new RuntimeException
     }
     val mc = new TemperatureProcess(acceptPrs, reversible)
-    return 
-      if (useOld)
-        new AbsPrsOld(mc).absorptionProbability(mc.initialState, mc.absorbingState(1)) 
-      else
-        AbsorptionProbabilities::compute(mc) 
+    return AbsorptionProbabilities::compute(mc) 
   } 
-  
-  public static var boolean useOld = true
-  
-  def static void main(String [] args) {
-    val p = "/Users/bouchard/experiments/ptanalysis-nextflow/work/f6/5b6eb6e79dc9ea435be9ec762f5b06/multiBenchmark/work/8b/b41a6750f9cef69c97747561b72ddd/results/all/2018-12-04-10-06-42-HVSzp8mU.exec/samples/energy.csv"
-    for (pr : 4..4) {
-      val go = new GridOptimizer(new Energies(p), false, 2)    
-      go.initializeViaTargetSwapAcceptProbability(pr / 10.0)
-      println(pr / 10.0)
-      println(go.grid.get(1))
-      println(go.grid.size)
-      println(go.rejuvenationPr)
-      println("---")
-    }
-  }
+
 }

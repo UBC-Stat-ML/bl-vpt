@@ -7,12 +7,11 @@ import org.junit.Assert
 
 class AbsPrsMCTest {
   val int N = 5
+  val start = 3
   
   @Test
   def void test() {
-    val start = 3
-    val abs = new AbsorptionProbabilities(rw)
-    Assert.assertEquals(abs.absorptionProbability(start, 0), numerical(rw, start, 0, N - 1), 0.01) 
+    Assert.assertEquals(AbsorptionProbabilities::compute(rw), numerical(rw, start, 0, N - 1), 0.01) 
   }
   
   def static <S> double numerical(DiscreteMarkovChain<S> chain, S start, S s0, S s1) {
@@ -25,19 +24,17 @@ class AbsPrsMCTest {
       }
       stats.addValue(if (state == 0) 1 else 0)
     }
-    return stats.getMean
+    return 1.0 - stats.getMean
   }
   
   val rw = new DiscreteMarkovChain<Integer> {
-    override initialState() { 1 }
+    override initialState() { start }
     override sample(Integer current, Random rand) {
       if (current == absorbingState(0) || current == absorbingState(1)) return current
       return if (rand.nextBernoulli(0.5)) current+1 else current-1
     }
-    
     override absorbingState(int index) {
       if (index == 0) 0 else N - 1
     }
-    
   }
 }
