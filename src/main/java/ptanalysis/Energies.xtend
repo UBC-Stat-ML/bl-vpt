@@ -89,7 +89,7 @@ class Energies {
     val result =  a * b + c
     if (!Double.isFinite(a) || !Double.isFinite(b) || !Double.isFinite(c)) {
       // when both the mean and variance are large, numerical problem can occur
-      // then use the bound E(min{1, e^A}) >= P(A >= 0)
+      // then use the approx derived from bound E(min{1, e^A}) >= P(A >= 0)
       val cdf = new NormalDistribution(m, s).cumulativeProbability(0.0)
       if (Double.isNaN(cdf) || Double.isInfinite(cdf))
         throw new RuntimeException
