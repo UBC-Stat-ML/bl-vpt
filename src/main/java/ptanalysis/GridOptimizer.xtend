@@ -47,12 +47,15 @@ class GridOptimizer {
    * in the parallel setting.
    */
   def void optimize() {
-    val lastIter = rejuvenationPr
+    var lastIter = rejuvenationPr
     for (iter : 0 .. maxIterations) {
       for (i : 1..< grid.size - 1)
         optimize(i)
-      if (Math.abs(lastIter - rejuvenationPr) < 0.001)
+      val current = rejuvenationPr
+      if (Math.abs(lastIter - current) < 0.001) {
         return
+      }
+      lastIter = current
     }
   }
   

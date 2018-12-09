@@ -11,13 +11,13 @@ class RejuvenationScalings extends Experiment {
   Energies energies 
   
   @Arg @DefaultValue("500")
-  int maxGridSize
+  int maxGridSize = 500
   
   override run() {
     val writer = results.getTabularWriter("output")
     val x1optimization = results.getTabularWriter("x1optimization")
     val optimalGrid = results.getTabularWriter("optimalGrids")
-    for (target : (1..9).map[it as double/10.0]) {
+    for (target : (8..9).map[it as double/10.0]) {
       println("Started target " + target)
       for (reversible : #[true, false]) {
         val optimizer = new GridOptimizer(energies, reversible, 1)
@@ -29,7 +29,8 @@ class RejuvenationScalings extends Experiment {
           curWriter.write(
             "method" -> "fromTargetAccept",
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
-            
+          
+          println("optimize fromTargetAccept")
           optimizer.optimize
           curWriter.write(
             "method" -> "optimizeFromTargetAccept",
@@ -42,12 +43,14 @@ class RejuvenationScalings extends Experiment {
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
           optimizer.outputGrid(curGridWriter.child("method", "uniform"))
             
+          println("optimize optimizeFromUniform")
           optimizer.optimize
           curWriter.write(
             "method" -> "optimizeFromUniform",
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
           optimizer.outputGrid(curGridWriter.child("method", "optimizeFromUniform"))
-            
+           
+          println("x1")
           val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, curOptWriter)
           if (x1Optimized !== null) { // when n chains = 2
             curWriter.write(

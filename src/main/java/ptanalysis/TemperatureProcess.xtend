@@ -40,4 +40,7 @@ import java.util.List
     if (index < 0 || index > 1) throw new RuntimeException
     if (index === 0) 0 -> -1 else acceptPrs.size -> 1
   }
+  override toString() {
+    return "reversible=" + reversible + ", nChains=" + (1+acceptPrs.size)
+  }
 }
