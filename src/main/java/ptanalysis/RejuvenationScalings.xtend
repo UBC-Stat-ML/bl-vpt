@@ -17,7 +17,7 @@ class RejuvenationScalings extends Experiment {
     val writer = results.getTabularWriter("output")
     val x1optimization = results.getTabularWriter("x1optimization")
     val optimalGrid = results.getTabularWriter("optimalGrids")
-    for (target : (8..9).map[it as double/10.0]) {
+    for (target : (1..9).map[it as double/10.0]) {
       println("Started target " + target)
       for (reversible : #[true, false]) {
         val optimizer = new GridOptimizer(energies, reversible, 1)
