@@ -67,13 +67,13 @@ class GridOptimizer {
   //// Utility to optimize over number of hot chains as well
   
   def static GridOptimizer optimizeX1(Energies swapPrs, boolean reversible, int totalNChains) {
-    optimizeX1(swapPrs, reversible, totalNChains, null, false)
+    optimizeX1(swapPrs, reversible, totalNChains, null)
   }
-  def static GridOptimizer optimizeX1(Energies energies, boolean reversible, int totalNChains, TabularWriter writer, boolean earlyStop) {
+  def static GridOptimizer optimizeX1(Energies energies, boolean reversible, int totalNChains, TabularWriter writer) {
     var max = Double::NEGATIVE_INFINITY
     var GridOptimizer argMax = null
     var List<Double> lastGrid
-    for (nHotChains : 1 .. (totalNChains - 1)) {
+    for (nHotChains : 1 ..< (totalNChains - 1)) { // at least 3 levels, to avoid numerical problems
       val current = new GridOptimizer(energies, reversible, nHotChains) 
       if (nHotChains == 1)
         current.initializedToUniform(totalNChains - nHotChains + 1) 
@@ -91,8 +91,7 @@ class GridOptimizer {
       if (pr > max) {
         max = pr
         argMax = current
-      } else if (earlyStop) 
-        return argMax
+      } 
     }
     return argMax
   }
@@ -150,6 +149,11 @@ class GridOptimizer {
    * so if get a problem, just reduce the first interval to a spacing that behaves well.
    */
   private def void checkAndRepairFirstInterval() {
+    if (nHotChains == 1) {
+      return // only needed because of X1Approximations
+    }
+    if (grid.size === 2) 
+      throw new RuntimeException
     firstSpacingLimit = 1.0
     while (!ok(firstSpacingLimit)) 
       firstSpacingLimit /= 2.0

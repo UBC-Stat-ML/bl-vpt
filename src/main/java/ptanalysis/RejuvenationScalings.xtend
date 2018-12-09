@@ -13,8 +13,8 @@ class RejuvenationScalings extends Experiment {
   @Arg @DefaultValue("500")
   int maxGridSize
   
-  @Arg @DefaultValue("true")
-  boolean earlyStop = true
+  @Arg @DefaultValue("false")
+  boolean earlyStop = false
   
   override run() {
     val writer = results.getTabularWriter("output")
@@ -52,10 +52,12 @@ class RejuvenationScalings extends Experiment {
           optimizer.outputGrid(curGridWriter.child("method", "optimizeFromUniform"))
             
           val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, curOptWriter, earlyStop)
-          curWriter.write(
-            "method" -> "X1Move",
-            "rejuvenationPr" -> x1Optimized.rejuvenationPr) 
-          x1Optimized.outputGrid(curGridWriter.child("method", "X1Move"))
+          if (x1Optimized !== null) { // when n chains = 2
+            curWriter.write(
+              "method" -> "X1Move",
+              "rejuvenationPr" -> x1Optimized.rejuvenationPr) 
+            x1Optimized.outputGrid(curGridWriter.child("method", "X1Move"))
+          }
         } catch (TooManyIterationsException tmi) {
           System.err.println("Too many iterations for target " + target + ", reversible=" + reversible)
         }
