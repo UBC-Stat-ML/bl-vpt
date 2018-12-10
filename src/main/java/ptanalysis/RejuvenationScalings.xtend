@@ -4,6 +4,7 @@ import blang.inits.experiments.Experiment
 import blang.inits.Arg
 import blang.inits.DefaultValue
 import org.apache.commons.math3.exception.TooManyIterationsException
+import ptanalysis.GridOptimizer.OptimizationOptions
 
 class RejuvenationScalings extends Experiment {
   
@@ -12,6 +13,9 @@ class RejuvenationScalings extends Experiment {
   
   @Arg @DefaultValue("500")
   int maxGridSize = 500
+  
+  @Arg 
+  OptimizationOptions optimizationOptions = new OptimizationOptions
   
   override run() {
     val writer = results.getTabularWriter("output")
@@ -31,7 +35,7 @@ class RejuvenationScalings extends Experiment {
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
           
           println("optimize fromTargetAccept")
-          optimizer.optimize
+          optimizer.optimize(optimizationOptions)
           curWriter.write(
             "method" -> "optimizeFromTargetAccept",
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
@@ -44,14 +48,14 @@ class RejuvenationScalings extends Experiment {
           optimizer.outputGrid(curGridWriter.child("method", "uniform"))
             
           println("optimize optimizeFromUniform")
-          optimizer.optimize
+          optimizer.optimize(optimizationOptions)
           curWriter.write(
             "method" -> "optimizeFromUniform",
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
           optimizer.outputGrid(curGridWriter.child("method", "optimizeFromUniform"))
            
           println("x1")
-          val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, curOptWriter)
+          val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, optimizationOptions,  curOptWriter)
           if (x1Optimized !== null) { // when n chains = 2
             curWriter.write(
               "method" -> "X1Move",

@@ -14,6 +14,8 @@ import java.util.Collection
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.apache.commons.math3.exception.TooManyIterationsException
 import org.apache.commons.math3.analysis.solvers.PegasusSolver
+import blang.inits.DefaultValue
+import blang.inits.Arg
 
 /**
  * See optimize()
@@ -35,9 +37,13 @@ class GridOptimizer {
   @Accessors(PUBLIC_GETTER)
   val List<Double> grid = new ArrayList(#[0.0, 1.0])
   
-  /** Maximum number of iteration to perform the optimization. */
-  @Accessors(PUBLIC_SETTER, PUBLIC_GETTER) 
-  var int maxIterations = 100
+  static class OptimizationOptions {
+    @Arg @DefaultValue("100")
+    int maxIterations = 100
+    
+    @Arg @DefaultValue("1e-5")
+    double  tolerence = 1e-5
+  }
   
   /**
    * Main purpose of this class: maximize the probability of 
@@ -46,13 +52,13 @@ class GridOptimizer {
    * Equivalent to fraction of samples coming from new initialization 
    * in the parallel setting.
    */
-  def void optimize() {
+  def void optimize(OptimizationOptions options) {
     var lastIter = rejuvenationPr
-    for (iter : 0 .. maxIterations) {
+    for (iter : 0 .. options.maxIterations) {
       for (i : 1..< grid.size - 1)
         optimize(i)
       val current = rejuvenationPr
-      if (Math.abs(lastIter - current) < 0.001) {
+      if (Math.abs(lastIter - current) < options.tolerence) {
         return
       }
       lastIter = current
@@ -69,10 +75,10 @@ class GridOptimizer {
   
   //// Utility to optimize over number of hot chains as well
   
-  def static GridOptimizer optimizeX1(Energies swapPrs, boolean reversible, int totalNChains) {
-    optimizeX1(swapPrs, reversible, totalNChains, null)
+  def static GridOptimizer optimizeX1(Energies swapPrs, boolean reversible, int totalNChains, OptimizationOptions options) {
+    optimizeX1(swapPrs, reversible, totalNChains, options, null)
   }
-  def static GridOptimizer optimizeX1(Energies energies, boolean reversible, int totalNChains, TabularWriter writer) {
+  def static GridOptimizer optimizeX1(Energies energies, boolean reversible, int totalNChains, OptimizationOptions options, TabularWriter writer) {
     var max = Double::NEGATIVE_INFINITY
     var GridOptimizer argMax = null
     var List<Double> lastGrid
@@ -84,7 +90,7 @@ class GridOptimizer {
         lastGrid.remove(1)
         current.initialize(lastGrid)
       }
-      current.optimize
+      current.optimize(options)
       lastGrid = new ArrayList(current.grid)
       val pr = current.rejuvenationPr
       if (writer !== null) writer.write(
