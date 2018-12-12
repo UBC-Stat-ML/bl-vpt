@@ -17,6 +17,7 @@ import org.apache.commons.math3.analysis.solvers.PegasusSolver
 import blang.inits.DefaultValue
 import blang.inits.Arg
 import java.util.Collections
+import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair
 
 /**
  * See optimize()
@@ -53,7 +54,6 @@ class GridOptimizer {
       }
       initialize(newGrid)
       optimize(options)
-      // NB / TODO: might want to explicitly check for EPSILON spaced grid in the inner optimize routine
     }
   }
   
@@ -236,19 +236,36 @@ class GridOptimizer {
         next
     if (leftBound == rightBound)
       return
-    val init = grid.get(gridPointIndex)
     val UnivariateFunction objective = [
       grid.set(gridPointIndex, it)
       return rejuvenationPr
     ]
-    val optimizer = new BrentOptimizer(1e-10, 1e-10);
+    
+    // The problem can be non-convex, so try search from both end points and the old value
+    val old = grid.get(gridPointIndex)
+    val fromLeft  = optimize(leftBound, rightBound, leftBound, objective)
+    val fromRight = optimize(leftBound, rightBound, rightBound, objective)
+    val fromOld   = optimize(leftBound, rightBound, old, objective)
+    
+    var UnivariatePointValuePair argmax = null
+    var double max = Double::NEGATIVE_INFINITY
+    for (candidate : #[fromLeft, fromRight, fromOld])
+      if (candidate.value >= max) {
+        max = candidate.value
+        argmax = candidate
+      }
+    grid.set(gridPointIndex, argmax.point)
+  }
+  
+  def private UnivariatePointValuePair optimize(double leftBound, double rightBound, double init, UnivariateFunction objective) {
+    val optimizer = new BrentOptimizer(1e-10, 1e-10)
+    
     val interval = new SearchInterval(leftBound, rightBound, init)
-    val result = optimizer.optimize(
+    return optimizer.optimize(
       GoalType.MAXIMIZE, 
       new UnivariateObjectiveFunction(objective), 
       interval, 
-      new MaxEval(100)).point
-    grid.set(gridPointIndex, result)
+      new MaxEval(100))
   }
   
   /**
