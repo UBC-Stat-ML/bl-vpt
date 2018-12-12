@@ -16,6 +16,7 @@ import org.apache.commons.math3.exception.TooManyIterationsException
 import org.apache.commons.math3.analysis.solvers.PegasusSolver
 import blang.inits.DefaultValue
 import blang.inits.Arg
+import java.util.Collections
 
 /**
  * See optimize()
@@ -26,6 +27,35 @@ class GridOptimizer {
   val Energies energies
   val boolean reversible
   val int nHotChains // setting to > 1 corresponds to a X1 sampler
+  
+  def void coarseToFineOptimize(
+    int nIntermediateChains, 
+    OptimizationOptions options
+  ) {
+    if (nIntermediateChains < 0) throw new RuntimeException
+    if (nIntermediateChains == 0) {
+      return
+    }
+    var currentNIntermediates = 1
+    initializedToUniform(2 + currentNIntermediates)
+    while (currentNIntermediates < nIntermediateChains) {
+      currentNIntermediates = Math.min(nIntermediateChains, 2*currentNIntermediates)
+      // create a new refinement by starting from the old one
+      val newGrid = new ArrayList(grid)
+      var nAdded = 0
+      val nToAdd = currentNIntermediates - (grid.size - 2)
+      for (var int i = 1; nAdded < nToAdd; i++) {
+        val left = grid.get(i)
+        val right = grid.get(i + 1)
+        val middle = (right - left) / 2.0
+        newGrid.add(middle)
+        nAdded++
+      }
+      initialize(newGrid)
+      optimize(options)
+      // NB / TODO: might want to explicitly check for EPSILON spaced grid in the inner optimize routine
+    }
+  }
   
   new (Energies energies, boolean reversible, int nHotChains) {
     this.energies = energies
@@ -38,8 +68,8 @@ class GridOptimizer {
   val List<Double> grid = new ArrayList(#[0.0, 1.0])
   
   static class OptimizationOptions {
-    @Arg @DefaultValue("100")
-    int maxIterations = 100
+    @Arg @DefaultValue("10")
+    int maxIterations = 10
     
     @Arg @DefaultValue("1e-5")
     double  tolerence = 1e-5
@@ -47,7 +77,7 @@ class GridOptimizer {
   
   /**
    * Main purpose of this class: maximize the probability of 
-   * hitting the room temp from the hot chain (vs collapsing 
+   * hitting the room temperature from the hot chain (vs collapsing 
    * back to the prior/hot chain). 
    * Equivalent to fraction of samples coming from new initialization 
    * in the parallel setting.
@@ -63,6 +93,7 @@ class GridOptimizer {
       }
       lastIter = current
     }
+    throw new TooManyIterationsException(options.maxIterations) 
   }
   
   def void outputGrid(TabularWriter writer) {
@@ -81,17 +112,9 @@ class GridOptimizer {
   def static GridOptimizer optimizeX1(Energies energies, boolean reversible, int totalNChains, OptimizationOptions options, TabularWriter writer) {
     var max = Double::NEGATIVE_INFINITY
     var GridOptimizer argMax = null
-    var List<Double> lastGrid
     for (nHotChains : 1 ..< (totalNChains - 1)) { // at least 3 levels, to avoid numerical problems
       val current = new GridOptimizer(energies, reversible, nHotChains) 
-      if (nHotChains == 1)
-        current.initializedToUniform(totalNChains - nHotChains + 1) 
-      else {
-        lastGrid.remove(1)
-        current.initialize(lastGrid)
-      }
-      current.optimize(options)
-      lastGrid = new ArrayList(current.grid)
+      current.coarseToFineOptimize(totalNChains - nHotChains - 1, options)
       val pr = current.rejuvenationPr
       if (writer !== null) writer.write(
         "nHotChains" -> nHotChains,
@@ -109,13 +132,15 @@ class GridOptimizer {
   
   /**
    * Initialize at equal spacings of the annealing parameters.
+   * Number of grid points including 0.0 and 1.0 but ignoring 
+   * the prior replicates.
    */
-  def void initializedToUniform(int nChains) {
-    if (nChains <= 1) throw new RuntimeException
+  def void initializedToUniform(int nGridPoints) {
+    if (nGridPoints <= 1) throw new RuntimeException
     grid.clear
     // initialize with equally spaced say
-    val increment = 1.0 / (nChains - 1.0)
-    for (i : 0 ..< nChains) 
+    val increment = 1.0 / (nGridPoints - 1.0)
+    for (i : 0 ..< nGridPoints) 
       this.grid.add(i * increment)
     checkAndRepairFirstInterval
   }
@@ -147,7 +172,7 @@ class GridOptimizer {
   def void initialize(Collection<Double> initGrid) {
     grid.clear
     grid.addAll(initGrid)
-    grid.sort
+    Collections.sort(grid)
     if (grid.get(0) != 0.0 || grid.get(grid.size - 1) != 1.0)
       throw new RuntimeException
     checkAndRepairFirstInterval
@@ -209,6 +234,8 @@ class GridOptimizer {
         Math::min(grid.get(gridPointIndex + 1), firstSpacingLimit)
       else
         next
+    if (leftBound == rightBound)
+      return
     val init = grid.get(gridPointIndex)
     val UnivariateFunction objective = [
       grid.set(gridPointIndex, it)
@@ -242,7 +269,10 @@ class GridOptimizer {
     if (nHotChains <= 0) throw new RuntimeException
     val cur = grid.get(i)
     val nxt = grid.get(i+1)
-    if (nxt <= cur) throw new RuntimeException
+    if (nxt == cur)
+      return 1.0
+    if (nxt <= cur) 
+      throw new RuntimeException
     if (i > 0 || nHotChains == 1)
       return energies.swapAcceptPr(cur, nxt)
     else 

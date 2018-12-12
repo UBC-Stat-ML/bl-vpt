@@ -31,10 +31,11 @@ class RejuvenationScalings extends Experiment {
           val curOptWriter =  x1optimization.child("reversible", reversible).child("nChains", optimizer.grid.size).child("targetAccept", target)
           val curGridWriter =    optimalGrid.child("reversible", reversible).child("nChains", optimizer.grid.size).child("targetAccept", target)
           curWriter.write(
-            "method" -> "fromTargetAccept",
-            "rejuvenationPr" -> optimizer.rejuvenationPr) 
+            "method" -> "targetAccept",
+            "rejuvenationPr" -> optimizer.rejuvenationPr)
+          optimizer.outputGrid(curGridWriter.child("method", "targetAccept")) 
           
-          println("optimize fromTargetAccept")
+          println("optimize from targetAccept")
           optimizer.optimize(optimizationOptions)
           curWriter.write(
             "method" -> "optimizeFromTargetAccept",
@@ -43,24 +44,32 @@ class RejuvenationScalings extends Experiment {
             
           optimizer.initializedToUniform(optimizer.grid.size)
           curWriter.write(
-            "method" -> "uniform",
+            "method" -> "uniformGrid",
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
-          optimizer.outputGrid(curGridWriter.child("method", "uniform"))
+          optimizer.outputGrid(curGridWriter.child("method", "uniformGrid"))
             
-          println("optimize optimizeFromUniform")
+          println("optimize from uniform")
           optimizer.optimize(optimizationOptions)
           curWriter.write(
             "method" -> "optimizeFromUniform",
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
           optimizer.outputGrid(curGridWriter.child("method", "optimizeFromUniform"))
+          
+          println("optimize coarse to fine")
+          optimizer.coarseToFineOptimize(optimizer.grid.size - 2, optimizationOptions)
+          curWriter.write(
+            "method" -> "optimizeCoarseToFine",
+            "rejuvenationPr" -> optimizer.rejuvenationPr) 
+          optimizer.outputGrid(curGridWriter.child("method", "optimizeCoarseToFine"))
+           
            
           println("x1")
           val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, optimizationOptions,  curOptWriter)
           if (x1Optimized !== null) { // when n chains = 2
             curWriter.write(
-              "method" -> "X1Move",
+              "method" -> "x1Move",
               "rejuvenationPr" -> x1Optimized.rejuvenationPr) 
-            x1Optimized.outputGrid(curGridWriter.child("method", "X1Move"))
+            x1Optimized.outputGrid(curGridWriter.child("method", "x1Move"))
           }
         } catch (TooManyIterationsException tmi) {
           System.err.println("Too many iterations for target " + target + ", reversible=" + reversible)
