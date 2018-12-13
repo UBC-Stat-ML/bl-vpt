@@ -47,9 +47,7 @@ class GridOptimizer {
       val nToAdd = currentNIntermediates - (grid.size - 2)
       for (var int i = 1; nAdded < nToAdd; i++) {
         val left = grid.get(i)
-        val right = grid.get(i + 1)
-        val middle = (right - left) / 2.0
-        newGrid.add(middle)
+        newGrid.add(left)
         nAdded++
       }
       initialize(newGrid)
@@ -68,8 +66,8 @@ class GridOptimizer {
   val List<Double> grid = new ArrayList(#[0.0, 1.0])
   
   static class OptimizationOptions {
-    @Arg @DefaultValue("10")
-    int maxIterations = 10
+    @Arg @DefaultValue("20")
+    int maxIterations = 20
     
     @Arg @DefaultValue("1e-5")
     double  tolerence = 1e-5
@@ -93,7 +91,6 @@ class GridOptimizer {
       }
       lastIter = current
     }
-    throw new TooManyIterationsException(options.maxIterations) 
   }
   
   def void outputGrid(TabularWriter writer) {
@@ -259,7 +256,6 @@ class GridOptimizer {
   
   def private UnivariatePointValuePair optimize(double leftBound, double rightBound, double init, UnivariateFunction objective) {
     val optimizer = new BrentOptimizer(1e-10, 1e-10)
-    
     val interval = new SearchInterval(leftBound, rightBound, init)
     return optimizer.optimize(
       GoalType.MAXIMIZE, 
