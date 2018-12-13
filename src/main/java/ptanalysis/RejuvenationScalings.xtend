@@ -33,15 +33,15 @@ class RejuvenationScalings extends Experiment {
       for (reversible : #[true, false]) {
         val optimizer = new GridOptimizer(energies, reversible, 1)
         try {
-          var curWriter =             writer.child("reversible", reversible).child("index", index)
-          var curOptWriter =  x1optimization.child("reversible", reversible).child("index", index)
-          var curGridWriter =    optimalGrid.child("reversible", reversible).child("index", index)
+          var curWriter =             writer.child("reversible", reversible)
+          var curOptWriter =  x1optimization.child("reversible", reversible)
+          var curGridWriter =    optimalGrid.child("reversible", reversible)
           val int size = if (byTargetRate) {
             optimizer.initializeViaTargetSwapAcceptProbability(index as Double, maxGridSize)
             
-            curWriter = curWriter.child("nChains", optimizer.grid.size)
-            curOptWriter = curOptWriter.child("nChains", optimizer.grid.size)
-            curGridWriter = curGridWriter.child("nChains", optimizer.grid.size)
+            curWriter = curWriter.child("nChains", optimizer.grid.size).child("targetAccept", index)
+            curOptWriter = curOptWriter.child("nChains", optimizer.grid.size).child("targetAccept", index)
+            curGridWriter = curGridWriter.child("nChains", optimizer.grid.size).child("targetAccept", index)
             
             curWriter.write(
               "method" -> "targetAccept",
@@ -55,8 +55,12 @@ class RejuvenationScalings extends Experiment {
               "rejuvenationPr" -> optimizer.rejuvenationPr) 
             optimizer.outputGrid(curGridWriter.child("method", "optimizeFromTargetAccept"))
             optimizer.grid.size
-          } else 
+          } else {
+            curWriter = curWriter.child("nChains", index)
+            curOptWriter = curOptWriter.child("nChains", index)
+            curGridWriter = curGridWriter.child("nChains", index)
             index.intValue
+          }
             
           optimizer.initializedToUniform(size)
           curWriter.write(

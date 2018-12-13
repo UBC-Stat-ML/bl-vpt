@@ -196,7 +196,7 @@ class GridOptimizer {
   private def boolean ok(double point) {
     if (nHotChains == 1) return true
     val accept = X1Approximations::acceptPr(energies, point, nHotChains)
-    return accept >= 0.0 && accept <= 1.0
+    return accept >= 0.001 && accept <= 1.0
   }
   
   /**
