@@ -5,14 +5,21 @@ import blang.inits.Arg
 import blang.inits.DefaultValue
 import org.apache.commons.math3.exception.TooManyIterationsException
 import ptanalysis.GridOptimizer.OptimizationOptions
+import java.util.List
 
 class RejuvenationScalings extends Experiment {
   
   @Arg
-  Energies energies 
+  public Energies energies 
   
-  @Arg @DefaultValue("500")
-  int maxGridSize = 500
+  @Arg @DefaultValue("1000")
+  public int maxGridSize = 1000
+  
+  @Arg @DefaultValue("true")
+  public boolean byTargetRate = true
+  
+  @Arg @DefaultValue("0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9")
+  List<Double> indices = #[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
   
   @Arg 
   OptimizationOptions optimizationOptions = new OptimizationOptions
@@ -21,39 +28,41 @@ class RejuvenationScalings extends Experiment {
     val writer = results.getTabularWriter("output")
     val x1optimization = results.getTabularWriter("x1optimization")
     val optimalGrid = results.getTabularWriter("optimalGrids")
-    for (target : (1..9).map[it as double/10.0]) {
-      println("Started target " + target)
+    for (index : indices) {
+      println("Started iteration index " + index)
       for (reversible : #[true, false]) {
         val optimizer = new GridOptimizer(energies, reversible, 1)
         try {
-          optimizer.initializeViaTargetSwapAcceptProbability(target, maxGridSize)
-          val curWriter =             writer.child("reversible", reversible).child("nChains", optimizer.grid.size).child("targetAccept", target)
-          val curOptWriter =  x1optimization.child("reversible", reversible).child("nChains", optimizer.grid.size).child("targetAccept", target)
-          val curGridWriter =    optimalGrid.child("reversible", reversible).child("nChains", optimizer.grid.size).child("targetAccept", target)
-          curWriter.write(
-            "method" -> "targetAccept",
-            "rejuvenationPr" -> optimizer.rejuvenationPr)
-          optimizer.outputGrid(curGridWriter.child("method", "targetAccept")) 
-          
-          println("optimize from targetAccept")
-          optimizer.optimize(optimizationOptions)
-          curWriter.write(
-            "method" -> "optimizeFromTargetAccept",
-            "rejuvenationPr" -> optimizer.rejuvenationPr) 
-          optimizer.outputGrid(curGridWriter.child("method", "optimizeFromTargetAccept"))
+          var curWriter =             writer.child("reversible", reversible).child("index", index)
+          var curOptWriter =  x1optimization.child("reversible", reversible).child("index", index)
+          var curGridWriter =    optimalGrid.child("reversible", reversible).child("index", index)
+          val int size = if (byTargetRate) {
+            optimizer.initializeViaTargetSwapAcceptProbability(index as Double, maxGridSize)
             
-          optimizer.initializedToUniform(optimizer.grid.size)
+            curWriter = curWriter.child("nChains", optimizer.grid.size)
+            curOptWriter = curOptWriter.child("nChains", optimizer.grid.size)
+            curGridWriter = curGridWriter.child("nChains", optimizer.grid.size)
+            
+            curWriter.write(
+              "method" -> "targetAccept",
+              "rejuvenationPr" -> optimizer.rejuvenationPr)
+            optimizer.outputGrid(curGridWriter.child("method", "targetAccept")) 
+            
+            println("optimize from targetAccept")
+            optimizer.optimize(optimizationOptions)
+            curWriter.write(
+              "method" -> "optimizeFromTargetAccept",
+              "rejuvenationPr" -> optimizer.rejuvenationPr) 
+            optimizer.outputGrid(curGridWriter.child("method", "optimizeFromTargetAccept"))
+            optimizer.grid.size
+          } else 
+            index.intValue
+            
+          optimizer.initializedToUniform(size)
           curWriter.write(
             "method" -> "uniformGrid",
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
           optimizer.outputGrid(curGridWriter.child("method", "uniformGrid"))
-            
-          println("optimize from uniform")
-          optimizer.optimize(optimizationOptions)
-          curWriter.write(
-            "method" -> "optimizeFromUniform",
-            "rejuvenationPr" -> optimizer.rejuvenationPr) 
-          optimizer.outputGrid(curGridWriter.child("method", "optimizeFromUniform"))
           
           println("optimize coarse to fine")
           optimizer.coarseToFineOptimize(optimizer.grid.size - 2, optimizationOptions)
@@ -61,7 +70,6 @@ class RejuvenationScalings extends Experiment {
             "method" -> "optimizeCoarseToFine",
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
           optimizer.outputGrid(curGridWriter.child("method", "optimizeCoarseToFine"))
-           
            
           println("x1")
           val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, optimizationOptions,  curOptWriter)
@@ -72,7 +80,7 @@ class RejuvenationScalings extends Experiment {
             x1Optimized.outputGrid(curGridWriter.child("method", "x1Move"))
           }
         } catch (TooManyIterationsException tmi) {
-          System.err.println("Too many iterations for target " + target + ", reversible=" + reversible)
+          System.err.println("Too many iterations for target " + index + ", reversible=" + reversible)
         }
       }
     }
