@@ -7,9 +7,13 @@ import blang.inits.ConstructorArg
 import blang.inits.experiments.Experiment
 import blang.inits.DesignatedConstructor
 import blang.inits.DefaultValue
+import blang.inits.Arg
+import java.util.Optional
 
 class PathViz extends Viz {
   val Paths paths
+  
+  @Arg Optional<Integer> boldTrajectory
   
   @DesignatedConstructor
   new(
@@ -20,9 +24,14 @@ class PathViz extends Viz {
     this.paths = paths
   }
   
+  val baseWeight = 0.05f
   override protected draw() {
-    strokeWeight(0.05f)
+    
     for (c : 0 ..< paths.nChains) {
+      if (boldTrajectory.orElse(-1) == c)
+        strokeWeight(6 * baseWeight)
+      else
+        strokeWeight(baseWeight)
       setColour(c)
       val path = paths.get(c)
       for (i : 1 ..< paths.nIterations)
