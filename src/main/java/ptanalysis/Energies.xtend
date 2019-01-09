@@ -10,11 +10,10 @@ import blang.inits.DesignatedConstructor
 import blang.inits.Input
 import blang.inits.Arg
 import blang.inits.DefaultValue
-import org.eclipse.xtend.lib.annotations.Accessors
+import briefj.BriefLog
 
 class Energies {
-  @Accessors(PUBLIC_GETTER) 
-  val TreeMap<Double, SummaryStatistics> moments
+  public val TreeMap<Double, SummaryStatistics> moments
   
   @Arg(description = "Create artificial replicates of state space for asymptotic analysis purpose")          
                 @DefaultValue("1")
@@ -29,9 +28,18 @@ class Energies {
     acceptPr(param1, param2, meanEnergy(param1), meanEnergy(param2), varianceEnergy(param1), varianceEnergy(param2)) 
   }
   
+  def boolean _useBackOff(double param1, double param2) {
+    _useBackOff(param1, param2, meanEnergy(param1), meanEnergy(param2), varianceEnergy(param1), varianceEnergy(param2)) 
+  }
+  
+  def double lambda(double param) {
+    val variance = 2.0 * varianceEnergy(param)
+    return Math.sqrt(2.0 * variance / Math::PI)
+  }
+  
   @DesignatedConstructor
   new(@Input String path) { this(new File(path)) }
-  new(File f) { this(moments(SwapStaticUtils::loadEnergies(f))) }
+  new(File f) { this(moments(SwapStaticUtils::preprocessedEnergies(f))) }
   new(TreeMap<Double, SummaryStatistics> moments) {
     this.moments = moments
     // check it's valid
@@ -76,11 +84,18 @@ class Energies {
     return acceptPr(deltaAnneal * (mean2 - mean1), deltaAnneal * deltaAnneal * (variance1 + variance2))
   }
   
+  def static boolean _useBackOff(double annealParam1, double annealParam2, double mean1, double mean2, double variance1, double variance2) {
+    if (mean1 === mean2 && variance1 === variance2) return false
+    val deltaAnneal = annealParam2 - annealParam1
+    return __useBackOff(deltaAnneal * (mean2 - mean1), deltaAnneal * deltaAnneal * (variance1 + variance2))
+  }
+  
   /**
    * Approximation of E(min{1, e^A}) for A ~ Normal(m, variance) from 
    * Roberts et al. 1997, Proposition 2.4
    */
-  def private static double acceptPr(double m, double variance) {
+  def static double acceptPr(double m, double variance) {
+    println("" + m + " " + variance)
     if (variance <= 0.0) throw new RuntimeException
     val s = Math.sqrt(variance)
     val a = Math.exp(m + s*s/2.0)
@@ -89,14 +104,40 @@ class Energies {
     val result =  a * b + c
     if (!Double.isFinite(a) || !Double.isFinite(b) || !Double.isFinite(c)) {
       // when both the mean and variance are large, numerical problem can occur
-      // then use the approx derived from bound E(min{1, e^A}) >= P(A >= 0)
+      // then use the approx derived from bound E[min{1, e^A}] >= P(A >= 0)
       val cdf = new NormalDistribution(m, s).cumulativeProbability(0.0)
       if (Double.isNaN(cdf) || Double.isInfinite(cdf))
         throw new RuntimeException
       return 1.0 - cdf
     } else if (!(result >= 0.0 && result <= 1.0))
       throw new RuntimeException
-    else return result
+    else {
+      
+      {
+        BriefLog::warnOnce("remove me! in: Energies.xtend")
+        val cdf = new NormalDistribution(m, s).cumulativeProbability(0.0)
+        if (Double.isNaN(cdf) || Double.isInfinite(cdf))
+          throw new RuntimeException
+        val alternative = 1.0 - cdf
+        if (alternative > result)
+          System.err.println("" + alternative + ", " + result)
+      }
+      
+      return result
+    }
   }
   val static STD_NORMAL = new NormalDistribution(0.0, 1.0)
+  
+  def static private  boolean __useBackOff(double m, double variance) {
+    val s = Math.sqrt(variance)
+    val a = Math.exp(m + s*s/2.0)
+    val b = STD_NORMAL.cumulativeProbability(-s - m/s)
+    val c = STD_NORMAL.cumulativeProbability(m/s)
+    val result =  a * b + c
+    if (!Double.isFinite(a) || !Double.isFinite(b) || !Double.isFinite(c)) {
+      return true
+    } else if (!(result >= 0.0 && result <= 1.0))
+      throw new RuntimeException
+    else return false
+  }
 }

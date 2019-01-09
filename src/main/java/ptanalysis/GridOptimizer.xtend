@@ -18,6 +18,8 @@ import blang.inits.Arg
 import java.util.Collections
 import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair
 import org.apache.commons.math3.optim.MaxEval
+import org.apache.commons.math3.analysis.integration.SimpsonIntegrator
+import java.io.File
 
 /**
  * See optimize()
@@ -196,7 +198,7 @@ class GridOptimizer {
   private def boolean ok(double point) {
     if (nHotChains == 1) return true
     val accept = X1Approximations::acceptPr(energies, point, nHotChains)
-    return accept >= 0.001 && accept <= 1.0
+    return accept >= 0.0 && accept <= 1.0
   }
   
   /**
@@ -290,5 +292,60 @@ class GridOptimizer {
       return energies.swapAcceptPr(cur, nxt)
     else 
       return X1Approximations::acceptPr(energies, grid.get(1), nHotChains)
+  }
+  
+  def static void main(String [] args) {
+    // Faithful:
+    val file = new File("/Users/bouchard/experiments/ptanalysis-nextflow/work/cc/e0d3e1eb94fcf7a5d92dc66a581ff1/inference/samples/energy.csv")
+     // always No = 0.49 !! also No >> MC here
+    
+    // Challenger:
+    //val file = new File("/Users/bouchard/experiments/ptanalysis-nextflow/work/8d/033467f86195e533434ac75cc3651f/multiBenchmark/work/2e/1474f7155162b20efcde820b5f660a/results/all/2018-12-06-14-47-38-Q0oAfuOe.exec/samples/energy.csv")
+    // No about 30%, No < MC
+    // area under curve not too big either
+    
+    // Ising:
+     //val file = new File("/Users/bouchard/experiments/ptanalysis-nextflow/work/d9/f82fec315c940490b1f07e82c917f3/multiBenchmark/work/fd/e86c35763d1efc3dcc9b90fac5cb2b/results/all/2018-12-09-11-18-39-04XggwEZ.exec/samples/energy.csv")
+    // very accurate
+    
+    val fullE = SwapStaticUtils::preprocessedEnergies(file)
+    val energies = new Energies(file)
+    
+    println(energies.moments.keySet)
+    
+//    val params = new ArrayList(fullE.keySet).sort
+//    for (j : 1 ..< 100) {
+//      val param = params.get(j)
+//      println(param)
+//      println("\tNo = " + energies.swapAcceptPr(0.0, param))
+//      println("\tMC = " + SwapStaticUtils::estimateSwapPr(0.0, param, fullE.get(0.0), fullE.get(param)))
+//      println("\tAT = " + (1.0 - param * energies.lambda(param)))
+//    }
+    
+//    if (true) {return}
+//    
+//    for (n : #[2, 4, 8, 16]) {
+//      val go = new GridOptimizer(energies, false, n)
+//      go.initializedToUniform(300)
+////      go.grid.set(1, 1e-30)
+//      println(go.grid.get(1) + "," + go.acceptPr(0) + "," + go.acceptPr(1) + "," + go.acceptPr(2) + "," + go.rejuvenationPr)
+//    }
+
+
+    /*
+     * This experiment below is misleading: mass looks very large close to zero but this is probably an 
+     * artifact of the linear interpolation being bad there: indeed all the bad mass is contained before the 
+     * first grid point in the approximation
+     */
+
+    var right = 1.0
+    val f = [double x | energies.lambda(x)]
+    for (i : 0 ..< 200) {
+      val integrator = new SimpsonIntegrator
+      val left = right / 2.0
+      val value = integrator.integrate(100000, f, left, right)
+      println("" + left + " \t" + right + " \t" + value)
+      right = left
+    }
   }
 }

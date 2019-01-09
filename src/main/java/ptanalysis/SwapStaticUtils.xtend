@@ -8,8 +8,6 @@ import blang.engines.internals.factories.PT
 import briefj.BriefMaps
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 import java.util.ArrayList
-import java.util.Collections
-import java.util.Random
 
 class SwapStaticUtils {
   
@@ -42,21 +40,20 @@ class SwapStaticUtils {
     val deltaParam = param1 - param2
     if (list1.size !== list2.size) throw new RuntimeException
     for (i : 0 ..< list1.size)
-      summary.addValue(Math.exp(deltaParam * Math.min(0, list1.get(i) - list2.get(i))))
+      summary.addValue(Math::min(1.0, Math.exp(deltaParam * (list1.get(i) - list2.get(i)))))
     return summary.getMean 
   }
   
   def static LinkedHashMap<Double,List<Double>> preprocessedEnergies(File f) {
     val result = loadEnergies(f)
-    _burnInShuffle(result, 0.5, new Random(1))
+    _burnIn(result, 0.5)
     return result
   }
   
-  def static _burnInShuffle(LinkedHashMap<Double, List<Double>> map, double burnInRate, Random rand) {
+  def static _burnIn(LinkedHashMap<Double, List<Double>> map, double burnInRate) {
     for (key : new ArrayList(map.keySet)) {
       val list = map.get(key)
       val postBurnIn = list.subList((burnInRate * list.size) as int, list.size)
-      Collections.shuffle(postBurnIn, rand)
       map.put(key, postBurnIn)
     }
   }
