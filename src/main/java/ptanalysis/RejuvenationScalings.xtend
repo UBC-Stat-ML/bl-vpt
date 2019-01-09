@@ -75,13 +75,15 @@ class RejuvenationScalings extends Experiment {
             "rejuvenationPr" -> optimizer.rejuvenationPr) 
           optimizer.outputGrid(curGridWriter.child("method", "optimizeCoarseToFine"))
            
-          println("x1")
-          val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, optimizationOptions,  curOptWriter)
-          if (x1Optimized !== null) { // when n chains = 2
-            curWriter.write(
-              "method" -> "x1Move",
-              "rejuvenationPr" -> x1Optimized.rejuvenationPr) 
-            x1Optimized.outputGrid(curGridWriter.child("method", "x1Move"))
+          if (energies instanceof NormalEnergies) {
+            println("x1")
+            val x1Optimized = GridOptimizer::optimizeX1(energies, reversible, optimizer.grid.size, optimizationOptions,  curOptWriter)
+            if (x1Optimized !== null) { // when n chains = 2
+              curWriter.write(
+                "method" -> "x1Move",
+                "rejuvenationPr" -> x1Optimized.rejuvenationPr) 
+              x1Optimized.outputGrid(curGridWriter.child("method", "x1Move"))
+            }
           }
         } catch (TooManyIterationsException tmi) {
           System.err.println("Too many iterations for target " + index + ", reversible=" + reversible)

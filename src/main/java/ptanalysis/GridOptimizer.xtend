@@ -197,7 +197,7 @@ class GridOptimizer {
   
   private def boolean ok(double point) {
     if (nHotChains == 1) return true
-    val accept = X1Approximations::acceptPr(energies, point, nHotChains)
+    val accept = X1Approximations::acceptPr(energies as NormalEnergies, point, nHotChains)
     return accept >= 0.0 && accept <= 1.0
   }
   
@@ -291,7 +291,7 @@ class GridOptimizer {
     if (i > 0 || nHotChains == 1)
       return energies.swapAcceptPr(cur, nxt)
     else 
-      return X1Approximations::acceptPr(energies, grid.get(1), nHotChains)
+      return X1Approximations::acceptPr(energies as NormalEnergies, grid.get(1), nHotChains)
   }
   
   def static void main(String [] args) {
@@ -309,9 +309,9 @@ class GridOptimizer {
     // very accurate
     
     val fullE = SwapStaticUtils::preprocessedEnergies(file)
-    val energies = new Energies(file)
+//    val energies = new Energies(file)
     
-    println(energies.moments.keySet)
+//    println(energies.moments.keySet)
     
 //    val params = new ArrayList(fullE.keySet).sort
 //    for (j : 1 ..< 100) {
@@ -338,14 +338,14 @@ class GridOptimizer {
      * first grid point in the approximation
      */
 
-    var right = 1.0
-    val f = [double x | energies.lambda(x)]
-    for (i : 0 ..< 200) {
-      val integrator = new SimpsonIntegrator
-      val left = right / 2.0
-      val value = integrator.integrate(100000, f, left, right)
-      println("" + left + " \t" + right + " \t" + value)
-      right = left
-    }
+//    var right = 1.0
+//    val f = [double x | energies.lambda(x)]
+//    for (i : 0 ..< 200) {
+//      val integrator = new SimpsonIntegrator
+//      val left = right / 2.0
+//      val value = integrator.integrate(100000, f, left, right)
+//      println("" + left + " \t" + right + " \t" + value)
+//      right = left
+//    }
   }
 }

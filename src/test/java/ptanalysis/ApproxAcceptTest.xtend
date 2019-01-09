@@ -27,7 +27,7 @@ class ApproxAcceptTest {
       put(0.4, stats0_4)
       put(1.0, stats1)
     ]
-    val approx = new Energies(map)
+    val approx = new NormalEnergies(map)
     for (p : (0..8).map[it/10.0]) { // at 0.9 and 1.0 gets variance too large
       println("" + p + " mean " + approx.meanEnergy(p))
       println("" + p + " variance " + approx.varianceEnergy(p))

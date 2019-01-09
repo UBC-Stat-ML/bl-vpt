@@ -14,7 +14,7 @@ class RejuvationEstimates extends Experiment {
   int  nHotChains = 1
   
   @Arg Optional<Paths> swapIndicators
-  @Arg Optional<Energies> energies
+  @Arg Optional<NormalEnergies> energies
   
   override run() {
     if (swapIndicators.present)
@@ -23,7 +23,7 @@ class RejuvationEstimates extends Experiment {
       record("normalApprox", normalApproximation(energies.get))
   }
   
-  def double normalApproximation(Energies energies) {
+  def double normalApproximation(NormalEnergies energies) {
     val opt = new GridOptimizer(energies, reversible, nHotChains)
     opt.initialize(energies.moments.keySet)
     return opt.rejuvenationPr / 2.0 // divide by 2.0 since only half of odd-even moves have an opportunity to rejuvenate

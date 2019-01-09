@@ -23,7 +23,7 @@ class SwapPrsViz extends MatrixViz {
   }
   
   def static Matrix matrix(File energiesFile, ApproximationMode mode) {
-    val allEnergies = new Energies(energiesFile)
+    val allEnergies = new NormalEnergies(energiesFile) 
     val burnedInEnergies = SwapStaticUtils::preprocessedEnergies(energiesFile)
     val size = allEnergies.moments.keySet.size  
     val params = new ArrayList(allEnergies.moments.keySet).sort

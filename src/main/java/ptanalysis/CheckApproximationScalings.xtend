@@ -9,6 +9,9 @@ import java.util.Set
 import java.util.Collections
 import blang.inits.experiments.tabwriters.TabularWriter
 
+/**
+ * Compute equally spaced accept prs, compare the swap prs.
+ */
 class CheckApproximationScalings extends Experiment {
   
   @Arg
@@ -17,7 +20,7 @@ class CheckApproximationScalings extends Experiment {
   override run() {
     val writer = results.getTabularWriter("output")
     val energies = SwapStaticUtils::preprocessedEnergies(energyFile)
-    val normalApprox = new Energies(energyFile)
+    val normalApprox = new NormalEnergies(energyFile)
     for (target : (0..10).map[it as double/10.0]) {
       val indicesAndAcceptPrs = SwapStaticUtils::equallySpacedAcceptPrs(energies, target)
       val approxPrs = approxPrs(indicesAndAcceptPrs, normalApprox, energies.keySet)
