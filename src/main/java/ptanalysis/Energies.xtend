@@ -10,7 +10,6 @@ import blang.inits.DesignatedConstructor
 import blang.inits.Input
 import blang.inits.Arg
 import blang.inits.DefaultValue
-import briefj.BriefLog
 
 class Energies {
   public val TreeMap<Double, SummaryStatistics> moments
@@ -112,17 +111,6 @@ class Energies {
     } else if (!(result >= 0.0 && result <= 1.0))
       throw new RuntimeException
     else {
-      
-      {
-        BriefLog::warnOnce("remove me! in: Energies.xtend")
-        val cdf = new NormalDistribution(m, s).cumulativeProbability(0.0)
-        if (Double.isNaN(cdf) || Double.isInfinite(cdf))
-          throw new RuntimeException
-        val alternative = 1.0 - cdf
-        if (alternative > result)
-          System.err.println("" + alternative + ", " + result)
-      }
-      
       return result
     }
   }
