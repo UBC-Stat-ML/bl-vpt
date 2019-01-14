@@ -43,7 +43,7 @@ class MCEnergies implements Energies {
     val blockSize = list.size / 2
     val subList1 = list.subList(0, blockSize)
     val subList2 = list.subList(blockSize, 2*blockSize)
-    val result = integrate(
+    val result = 0.5 * integrate(
       targetParam, proposalParam,
       targetParam, proposalParam,
       subList1,
