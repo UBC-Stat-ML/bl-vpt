@@ -31,7 +31,7 @@ class NormalEnergies implements Energies {
     _useBackOff(param1, param2, meanEnergy(param1), meanEnergy(param2), varianceEnergy(param1), varianceEnergy(param2)) 
   }
   
-  def double lambda(double param) {
+  override double lambda(double param) { 
     val variance = 2.0 * varianceEnergy(param)
     return Math.sqrt(2.0 * variance / Math::PI)
   }
@@ -94,7 +94,6 @@ class NormalEnergies implements Energies {
    * Roberts et al. 1997, Proposition 2.4
    */
   def static double acceptPr(double m, double variance) {
-    println("" + m + " " + variance)
     if (variance <= 0.0) throw new RuntimeException
     val s = Math.sqrt(variance)
     val a = Math.exp(m + s*s/2.0)

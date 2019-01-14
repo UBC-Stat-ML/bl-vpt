@@ -17,8 +17,10 @@ class RejuvationEstimates extends Experiment {
   @Arg Optional<NormalEnergies> energies
   
   override run() {
-    if (swapIndicators.present)
+    if (swapIndicators.present) {
       record("empirical", swapIndicators.get.nRejuvenations as double / swapIndicators.get.nIterations)
+      record("empiricalInverseCycleTime", swapIndicators.get.nChains / swapIndicators.get.cycleTimeStatistics.mean)
+    }
     if (energies.present)
       record("normalApprox", normalApproximation(energies.get))
   }

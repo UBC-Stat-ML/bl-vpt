@@ -8,6 +8,7 @@ import blang.inits.ConstructorArg
 import blang.inits.Input
 import blang.inits.DesignatedConstructor
 import blang.inits.DefaultValue
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 
 class Paths {
   val List<List<Integer>> paths
@@ -29,6 +30,13 @@ class Paths {
     return count
   }
   
+  def SummaryStatistics cycleTimeStatistics() {
+    val result = new SummaryStatistics
+    for (chain : 0 ..< nChains)
+      cycleTimeStatistics(chain, result)
+    return result
+  }
+  
   private def int nRejuvenations(int chainIndexAtBeginning) {
     var newSample = false
     var count = 0
@@ -39,6 +47,34 @@ class Paths {
       } else if (state == nChains - 1) 
         newSample = true
     return count
+  }
+  
+  private def void cycleTimeStatistics(int chainIndexAtBeginning, SummaryStatistics stats) {
+    val priorIdx = nChains - 1
+    val postIdx = 0
+    var mode = -1
+    var cycleSize = 0
+    for (state : get(chainIndexAtBeginning)) {
+      switch mode {
+        case -1 : { // before getting to prior chain for first time
+          if (state == priorIdx) 
+            mode = 0
+        }
+        case 0 : { // part of a cycle between prior and post
+          cycleSize++
+          if (state == postIdx)
+            mode = 1
+        }
+        case 1 : { // part of a cycle between post and prior
+          cycleSize++
+          if (state == priorIdx) {
+            mode = 0
+            stats.addValue(cycleSize)
+            cycleSize = 0
+          }
+        }
+      }
+    }
   }
   
   def int nChains() { return paths.size }

@@ -19,7 +19,6 @@ import java.util.Collections
 import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair
 import org.apache.commons.math3.optim.MaxEval
 import org.apache.commons.math3.analysis.integration.SimpsonIntegrator
-import java.io.File
 
 /**
  * See optimize()
@@ -57,6 +56,19 @@ class GridOptimizer {
     }
   }
   
+  def area(double left, double right) {
+    (new SimpsonIntegrator(1e-5, 1e-10, 3, 64)).integrate(
+      1_000_000, 
+      [energies.lambda(it)], 
+      left, right
+    )
+  }
+  
+  def void initializeToEquiArea(int n) {
+    val search = QuantileSearch::fromDensity([energies.lambda(it)], 0.0, 1.0, n * 100)
+    initialize(search.quantiles(n - 1)) 
+  }
+  
   new (Energies energies, boolean reversible, int nHotChains) {
     this.energies = energies
     this.reversible = reversible
@@ -83,11 +95,11 @@ class GridOptimizer {
    * in the parallel setting.
    */
   def void optimize(OptimizationOptions options) {
-    var lastIter = rejuvenationPr
+    var lastIter = criterion.apply
     for (iter : 0 .. options.maxIterations) {
       for (i : 1..< grid.size - 1)
         optimize(i)
-      val current = rejuvenationPr
+      val current = criterion.apply
       if (Math.abs(lastIter - current) < options.tolerence) {
         return
       }
@@ -114,7 +126,7 @@ class GridOptimizer {
     for (nHotChains : 1 ..< (totalNChains - 1)) { // at least 3 levels, to avoid numerical problems
       val current = new GridOptimizer(energies, reversible, nHotChains) 
       current.coarseToFineOptimize(totalNChains - nHotChains - 1, options)
-      val pr = current.rejuvenationPr
+      val pr = current.criterion.apply
       if (writer !== null) writer.write(
         "nHotChains" -> nHotChains,
         "rejuvenationPr" -> pr
@@ -237,7 +249,7 @@ class GridOptimizer {
       return
     val UnivariateFunction objective = [
       grid.set(gridPointIndex, it)
-      return rejuvenationPr
+      return criterion.apply
     ]
     
     // The problem can be non-convex, so try search from both end points and the old value
@@ -266,6 +278,12 @@ class GridOptimizer {
       new MaxEval(100))
   }
   
+  public var ()=> double criterion = [rejuvenationPr]
+  
+  def void useExpressObjective() {
+    criterion = [expressProbability]
+  }
+  
   /**
    * Compute the current value of the objective function, which 
    * is the hitting probability described in optimize()
@@ -279,6 +297,13 @@ class GridOptimizer {
     val mc = new TemperatureProcess(acceptPrs, reversible)
     return AbsorptionProbabilities::compute(mc) 
   } 
+  
+  def double expressProbability() {
+    var product = 1.0
+    for (i : 0 ..< grid.size - 1)
+      product *= acceptPr(i)
+    return product
+  }
   
   def double acceptPr(int i) {
     if (nHotChains <= 0) throw new RuntimeException
@@ -296,7 +321,7 @@ class GridOptimizer {
   
   def static void main(String [] args) {
     // Faithful:
-    val file = new File("/Users/bouchard/experiments/ptanalysis-nextflow/work/cc/e0d3e1eb94fcf7a5d92dc66a581ff1/inference/samples/energy.csv")
+//    val file = new File("/Users/bouchard/experiments/ptanalysis-nextflow/work/cc/e0d3e1eb94fcf7a5d92dc66a581ff1/inference/samples/energy.csv")
      // always No = 0.49 !! also No >> MC here
     
     // Challenger:
@@ -308,7 +333,7 @@ class GridOptimizer {
      //val file = new File("/Users/bouchard/experiments/ptanalysis-nextflow/work/d9/f82fec315c940490b1f07e82c917f3/multiBenchmark/work/fd/e86c35763d1efc3dcc9b90fac5cb2b/results/all/2018-12-09-11-18-39-04XggwEZ.exec/samples/energy.csv")
     // very accurate
     
-    val fullE = SwapStaticUtils::preprocessedEnergies(file)
+//    val fullE = SwapStaticUtils::preprocessedEnergies(file)
 //    val energies = new Energies(file)
     
 //    println(energies.moments.keySet)

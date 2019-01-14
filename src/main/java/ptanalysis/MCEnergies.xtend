@@ -9,6 +9,7 @@ import bayonet.distributions.Random
 import java.util.Collections
 import blang.inits.ConstructorArg
 import blang.inits.DefaultValue
+import java.util.HashMap
 
 @Data
 class MCEnergies implements Energies {
@@ -32,6 +33,27 @@ class MCEnergies implements Energies {
     return new MCEnergies(new TreeMap(energies))
   }
   
+  val lambdaCache = new HashMap<Double,Double>
+  
+  override lambda(double targetParam) {
+    if (lambdaCache.containsKey(targetParam))
+      return lambdaCache.get(targetParam)
+    val proposalParam = findProposal(targetParam)
+    val list = energies.get(proposalParam)
+    val blockSize = list.size / 2
+    val subList1 = list.subList(0, blockSize)
+    val subList2 = list.subList(blockSize, 2*blockSize)
+    val result = integrate(
+      targetParam, proposalParam,
+      targetParam, proposalParam,
+      subList1,
+      subList2,
+      [e1, e2 | Math::abs(e1 - e2)]
+    )
+    lambdaCache.put(targetParam, result)
+    return result
+  }
+  
   override double swapAcceptPr(double param1, double param2) {
     _swapAcceptPr(Math::min(param1, param2), Math::max(param1, param2))
   }
@@ -40,10 +62,15 @@ class MCEnergies implements Energies {
     if (param1 === param2) return 1.0
     var prop1 = findProposal(param1)
     var prop2 = findProposal(param2)
-    if (prop1 === prop2) {
+    if (prop1 === prop2) 
       prop1 = energies.floorKey(param1)
-    }
-    return integrate(param1, prop1, param2, prop2, [e1, e2 | Math::min(1, Math::exp((param2 - param1) * (e2 - e1)))])
+    return integrate(
+      param1, prop1, 
+      param2, prop2, 
+      energies.get(prop1), 
+      energies.get(prop2), 
+      [e1, e2 | Math::min(1, Math::exp((param2 - param1) * (e2 - e1)))]
+    )
   }
   
   def private double findProposal(double targetParam) {
@@ -56,11 +83,15 @@ class MCEnergies implements Energies {
     return if (d1 <= d2) after else before
   }
   
-  def private double integrate(double targetParam1, double proposalParam1, double targetParam2, double proposalParam2, (double, double) => double integrand) {
+  def private double integrate(
+    double targetParam1, double proposalParam1, 
+    double targetParam2, double proposalParam2, 
+    List<Double> list1,
+    List<Double> list2,
+    (double, double) => double integrand
+  ) {
     var num = 0.0
     var denom = 0.0
-    val list1 = energies.get(proposalParam1)
-    val list2 = energies.get(proposalParam2)
     if (list1.size !== list2.size) throw new RuntimeException
     for (i : 0 ..< list1.size) {
       val energy1 = list1.get(i) 
