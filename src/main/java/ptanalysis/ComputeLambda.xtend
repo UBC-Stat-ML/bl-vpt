@@ -8,11 +8,12 @@ class ComputeLambda extends Experiment {
   
   
   override run() {
-    for (beta : (0 .. 100).map[it / 100.0])
+    for (beta : (0 .. 1000).map[it / 1000.0])
       results.getTabularWriter("lambda").write(
         "beta" -> beta,
         "ref" -> ref(beta),
-        "lambda" -> energies.lambda(beta)
+        "lambda" -> energies.lambda(beta),
+        "swap" -> energies.swapAcceptPr(0.0, beta)
       )
   }
   

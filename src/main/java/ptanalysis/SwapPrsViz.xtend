@@ -24,6 +24,7 @@ class SwapPrsViz extends MatrixViz {
   
   def static Matrix matrix(File energiesFile, ApproximationMode mode) {
     val allEnergies = new NormalEnergies(energiesFile) 
+    val mcEnergies = MCEnergies::load(energiesFile, 0.5, Integer.MAX_VALUE) 
     val burnedInEnergies = SwapStaticUtils::preprocessedEnergies(energiesFile)
     val size = allEnergies.moments.keySet.size  
     val params = new ArrayList(allEnergies.moments.keySet).sort
@@ -36,6 +37,7 @@ class SwapPrsViz extends MatrixViz {
           case Normal : allEnergies.swapAcceptPr(param_i, param_j)
           case NormalDiagnostic : if (allEnergies._useBackOff(param_i, param_j)) 1.0 else 0.0
           case MonteCarlo : SwapStaticUtils::estimateSwapPr(param_i, param_j, burnedInEnergies.get(param_i), burnedInEnergies.get(param_j))
+          case MonteCarlo2 : mcEnergies.swapAcceptPr(param_i, param_j)
           case DenseTemperature : Math.max(0, (1.0 - Math.abs(param_i - param_j) * allEnergies.lambda(Math.min(param_i, param_j) + Math.abs(param_i - param_j) / 2.0)))
           default : throw new RuntimeException
         })
@@ -50,6 +52,7 @@ class SwapPrsViz extends MatrixViz {
   static enum ApproximationMode {
     Normal,
     MonteCarlo,
+    MonteCarlo2,
     DenseTemperature,
     NormalDiagnostic
   }
