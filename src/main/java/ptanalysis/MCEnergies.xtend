@@ -10,6 +10,8 @@ import java.util.Collections
 import blang.inits.ConstructorArg
 import blang.inits.DefaultValue
 import java.util.HashMap
+import briefj.BriefIO
+import briefj.BriefLog
 
 @Data
 class MCEnergies implements Energies {
@@ -82,8 +84,9 @@ class MCEnergies implements Energies {
     val list1 = rawList1.subList(0, blockSize)
     val list2 = rawList2.subList(blockSize, 2*blockSize)
     
-    var num = 0.0
-    var denom = 0.0
+    var sumIntegrandWeighted = 0.0
+    var sumWeight = 0.0
+    var sumSqrWeight = 0.0
     if (list1.size !== list2.size) throw new RuntimeException
     for (i : 0 ..< list1.size) {
       val energy1 = list1.get(i) 
@@ -91,10 +94,16 @@ class MCEnergies implements Energies {
       val weight =
         weight(targetParam1, proposalParam1, energy1) * 
         weight(targetParam2, proposalParam2, energy2)
-      num += weight * integrand.apply(energy1, energy2)
-      denom += weight
+      sumIntegrandWeighted += weight * integrand.apply(energy1, energy2)
+      sumWeight += weight
+      sumSqrWeight += weight * weight
     }
-    return num / denom
+    // check ESS and warn if low
+    val ess = sumWeight * sumWeight / sumSqrWeight
+    val relEss = ess / list1.size
+    if (relEss < 0.5)
+      BriefLog.warnOnce("Low relative ESS detected!")
+    return sumIntegrandWeighted / sumWeight
   }
   
   def private static double weight(double targetParam, double proposalParam, double energy) {
