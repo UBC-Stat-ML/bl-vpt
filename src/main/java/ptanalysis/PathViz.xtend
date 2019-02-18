@@ -15,6 +15,9 @@ class PathViz extends Viz {
   
   @Arg Optional<Integer> boldTrajectory
   
+                         @DefaultValue("true")
+  @Arg boolean useAcceptRejectColours = true
+  
   @DesignatedConstructor
   new(
     @ConstructorArg("swapIndicators") Paths paths, 
@@ -26,17 +29,29 @@ class PathViz extends Viz {
   
   val baseWeight = 0.05f
   override protected draw() {
-    
+    translate(0.5f, 0.5f)
     for (c : 0 ..< paths.nChains) {
       if (boldTrajectory.orElse(-1) == c)
         strokeWeight(6 * baseWeight)
       else
         strokeWeight(baseWeight)
-      setColour(c)
+      if (!useAcceptRejectColours)
+        setColour(c)
       val path = paths.get(c)
-      for (i : 1 ..< paths.nIterations)
-        line((i-1), path.get(i-1) + 0.5f, i, path.get(i) + 0.5f)
+      for (i : 1 ..< paths.nIterations) {
+        if (useAcceptRejectColours)
+          setColour(path.get(i-1) != path.get(i))
+        line((i-1), path.get(i-1), i, path.get(i))
+        stroke(0, 0, 0)
+        ellipse(i - 1, path.get(i-1), 0.1f, 0.1f)
+      }
+      ellipse(paths.nIterations - 1, path.get(paths.nIterations - 1), 0.1f, 0.1f)
     }
+  }
+  
+  def void setColour(boolean accepted) {
+    if (accepted) stroke(0, 204, 0)
+    else stroke(204, 0, 0)
   }
   
   def void setColour(int chainIndex) {
