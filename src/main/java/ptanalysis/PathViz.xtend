@@ -18,6 +18,8 @@ class PathViz extends Viz {
                          @DefaultValue("true")
   @Arg boolean useAcceptRejectColours = true
   
+  float ratio = 0.5f
+  
   @DesignatedConstructor
   new(
     @ConstructorArg("swapIndicators") Paths paths, 
@@ -41,11 +43,11 @@ class PathViz extends Viz {
       for (i : 1 ..< paths.nIterations) {
         if (useAcceptRejectColours)
           setColour(path.get(i-1) != path.get(i))
-        line((i-1), path.get(i-1), i, path.get(i))
+        line(ratio*(i-1), path.get(i-1), ratio*i, path.get(i))
         stroke(0, 0, 0)
-        ellipse(i - 1, path.get(i-1), 0.1f, 0.1f)
+        ellipse(ratio*(i - 1), path.get(i-1), 0.1f, 0.1f)
       }
-      ellipse(paths.nIterations - 1, path.get(paths.nIterations - 1), 0.1f, 0.1f)
+      ellipse(ratio*(paths.nIterations - 1), path.get(paths.nIterations - 1), 0.1f, 0.1f)
     }
   }
   
@@ -61,6 +63,7 @@ class PathViz extends Viz {
     stroke(interpolated)
   }
   
-  override protected privateSize() { new PrivateSize(paths.nIterations, paths.nChains) }
+  override protected privateSize() { new PrivateSize(paths.nIterations * ratio, paths.nChains) }
+  
   static def void main(String [] args) { Experiment::start(args) }
 }
