@@ -32,9 +32,14 @@ class PathViz extends Viz {
   val baseWeight = 0.05f
   override protected draw() {
     translate(0.5f, 0.5f)
+    val boldStroke = 6 * baseWeight
+    val minY = 0f
+    val maxY = paths.nChains - 1
+    val minX = 0f
+    val maxX = ratio * (paths.nIterations - 1)
     for (c : 0 ..< paths.nChains) {
       if (boldTrajectory.orElse(-1) == c)
-        strokeWeight(6 * baseWeight)
+        strokeWeight(boldStroke)
       else
         strokeWeight(baseWeight)
       if (!useAcceptRejectColours)
@@ -43,12 +48,19 @@ class PathViz extends Viz {
       for (i : 1 ..< paths.nIterations) {
         if (useAcceptRejectColours)
           setColour(path.get(i-1) != path.get(i))
-        line(ratio*(i-1), path.get(i-1), ratio*i, path.get(i))
+        val y0 = path.get(i-1)
+        val y1 =path.get(i)
+        line(ratio*(i-1), y0, ratio*i, y1)
         stroke(0, 0, 0)
-        ellipse(ratio*(i - 1), path.get(i-1), 0.1f, 0.1f)
+        ellipse(ratio*(i - 1), y0, 0.1f, 0.1f)
       }
-      ellipse(ratio*(paths.nIterations - 1), path.get(paths.nIterations - 1), 0.1f, 0.1f)
+      ellipse(maxX, path.get(paths.nIterations - 1), 0.1f, 0.1f)
     }
+    // black boundaries (masks corner case red/green color off there)
+    stroke(0, 0, 0)
+    strokeWeight(boldStroke)
+    line(minX, minY, maxX, minY) 
+    line(minX, maxY, maxX, maxY) 
   }
   
   def void setColour(boolean accepted) {
