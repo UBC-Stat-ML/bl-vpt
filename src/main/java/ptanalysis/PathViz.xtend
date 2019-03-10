@@ -51,7 +51,8 @@ class PathViz extends Viz {
         val y0 = path.get(i-1)
         val y1 =path.get(i)
         line(ratio*(i-1), y0, ratio*i, y1)
-        stroke(0, 0, 0)
+        if (useAcceptRejectColours)
+          stroke(0, 0, 0)
         ellipse(ratio*(i - 1), y0, 0.1f, 0.1f)
       }
       ellipse(maxX, path.get(paths.nIterations - 1), 0.1f, 0.1f)
