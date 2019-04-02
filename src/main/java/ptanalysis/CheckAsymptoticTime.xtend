@@ -7,6 +7,7 @@ import java.util.List
 class CheckAsymptoticTime extends Experiment {
   @Arg Energies energies
   @Arg Paths paths 
+  @Arg boolean reversible
   
   override run() {
     
@@ -39,37 +40,42 @@ class CheckAsymptoticTime extends Experiment {
     val fromMC = paths.cycleTimeStatistics.getMean / paths.nChains
     println("fromMCOutput = " + fromMC)
     
-    val optimizer = new GridOptimizer(energies, false, 1)
+    val optimizer = new GridOptimizer(energies, reversible, 1)
     val integral = println(optimizer.area(0.0, 1.0))
     val asymptotic = 2.0 + 2.0 * integral  // argg.. this works if instead = 2.0 + integral
     println("asymptotic = " + asymptotic) 
+
+//    for (point : (energies as MCEnergies).energies.keySet) 
+//      println("" + point + "\t" + energies.lambda(point))
     
     // another lambda check
-    val point = 0.5
-    println("LAMBDA - analytic = " + energies.lambda(point))
-    var delta = 0.1
-    for (i : 0 .. 10) {
-      val numerical = (1.0 - energies.swapAcceptPr(point, point + delta)) / delta
-      println("LAMBDA - numerical (" + delta + ") = " + numerical)
-      delta /= 2.0
-    }
+//    val point = 0.5
+//    println("LAMBDA - analytic = " + energies.lambda(point))
+//    var delta = 0.1
+//    for (i : 0 .. 10) {
+//      val numerical = (1.0 - energies.swapAcceptPr(point, point + delta)) / delta
+//      println("LAMBDA - numerical (" + delta + ") = " + numerical)
+//      delta /= 2.0
+//    }
     
     for (i : 2 .. 20) {
       val size = (2 ** i) as int
       optimizer.initializedToUniform(size)
       val p = optimizer.rejuvenationPr
       println("fromLinAlg (" + size + ") = " + (2.0 / p))
-      println("   analytic = " + analyticRoundtrip(optimizer.grid))
+      val formula = analyticRoundtrip(optimizer.grid, reversible)
+      println("   analytic = " + formula)
+      println("   delta = " + (2.0 / p - formula))
     }
   }
   
-  def double analyticRoundtrip(List<Double> grid) {
+  def double analyticRoundtrip(List<Double> grid, boolean reversible) {
     var sum = 0.0
     for (i : 0 ..< grid.size - 1) {
       val accept = energies.swapAcceptPr(grid.get(i), grid.get(i+1))
       sum += (1.0 - accept) / accept
     }
-    return 2.0 + 2.0 * sum
+    return 2.0 * (if (reversible) (grid.size) else 1.0) + 2.0 * sum
   }
   
   
