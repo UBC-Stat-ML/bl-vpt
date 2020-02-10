@@ -1,0 +1,25 @@
+package ptanalysis
+
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics
+
+model ToyNormal {
+  random RealVar mu ?: latentReal
+  
+  param Integer n ?: 100000
+  param Double suffStat ?: {
+    val stats = new SummaryStatistics
+    val rand = new Random(1)
+    for (i : 0 .. n)
+      stats.addValue(rand.normal(1000, 1))
+    System.out.println(stats.mean)
+    stats.mean
+  }
+  
+  laws {
+    mu ~ Normal(0, 100 * 100)
+    
+    | n, mu, suffStat ~ LogPotential({
+      -0.5 * n * pow(suffStat - mu, 2)
+    })
+  }
+}

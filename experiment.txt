@@ -1,0 +1,39 @@
+- our scheme (adaptive conveyor belt) 
+- MMV (rev)
+- 1 chain
+- ARR (rev)
+- DOE (fixed chain)
+
+
+- models:
+	- unidentif
+	- mixture - MVN version?
+	- challenger?
+	- change point - find more serious one?
+
+	- hierarchical/rocket  <-- yes, do it for a selected subset
+
+
+	- spike and slab <-- yes!
+	- diffusion?
+	- deconvolution with human SNPs? - might need random pair object - better: IntVar and RealVar impls with constraints (might need to think about how and if to allow the constraints to be random - still use slicer but started at full domain - after that might want to change the default window for integer slicer - need more diagnostics for slicers!!!
+
+
+- for later:
+	- classical phylogenetics <-- no, just understood that intermediate distributions not easier!
+	unless look at artificial mixture problem? or small number of leaves, large number of sites??? 'in silico mixture' of real data? 
+
+- adapt/sampling/combined
+
+- min/quantiles/max
+
+- ESS, time, ESS/sec
+
+===
+
+x axis: # of scans
+y axis: empirical round trip rate vs. theoretical
+
+
+--> change multibench
+--> produce ESS 

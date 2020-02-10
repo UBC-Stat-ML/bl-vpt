@@ -1,0 +1,26 @@
+package ptanalysis
+
+
+model ToyNormalSubsampled {
+  random RealVar mu ?: latentReal
+  
+  param Integer n ?: 10
+//  param Matrix partialSums //?: Annealers::generatePartialSums(new Random(1), n, Normal::distribution(0,1))
+  
+  laws {
+    mu ~ Normal(0, 10 * 10)
+    
+//    | n, mu, partialSums, AnnealingParameter beta = new AnnealingParameter ~ LogPotential({
+//      Annealers::linear(n, mu, beta, partialSums)
+//      if (beta == 0.0) return 0.0
+//      if (beta == 1.0) return - 0.5 * n * pow(mu - suffStats.get(n)/n, 2)
+//      val int l = Math.floor(beta * n) as int
+//      val int u = l + 1
+//      val double s0u = suffStats.get(u)
+//      val double A0u = - 0.5 * u * pow(mu - s0u/u, 2)
+//      val double lambda = n * beta - l
+//      val double xl = suffStats.get(u) - suffStats.get(l)
+//      return A0u - 0.5 * lambda * pow(mu - xl, 2)
+//    })
+  }
+}
