@@ -1,25 +1,16 @@
 package ptanalysis
 
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics
-
 model ToyNormal {
   random RealVar mu ?: latentReal
   
   param Integer n ?: pow(2, 5) as int - 1
-  param Double suffStat ?: {
-    val stats = new SummaryStatistics
-    val rand = new Random(1)
-    for (i : 0 .. n)
-      stats.addValue(rand.normal(100, 1))
-    System.out.println(stats.mean)
-    stats.mean
-  }
+  param Matrix suffStat ?: Annealers::generatePartialSums(new Random(1), n, Normal::distribution(100,1))
   
   laws {
     mu ~ Normal(0, 100 * 100)
     
-    | n, mu, suffStat ~ LogPotential({
-      -0.5 * n * pow(suffStat - mu, 2)
+    | n, mu, suffStat ~ LogPotential({ 
+      mu * (suffStat.get(n) - 0.5 * n * mu)
     })
   }
 }

@@ -48,7 +48,7 @@ class Annealers {
   def static Matrix generatePartialSums(Random rand, int n, RealDistribution dist) {
     val result = MatrixOperations::dense(n+1)
     result.set(0, 0)
-    for (i : 1 ..< n) {
+    for (i : 1 .. n) {
       val sample = dist.sample(rand)
       result.set(i, result.get(i-1) + sample)
     }
