@@ -221,15 +221,17 @@ public class ToyNormal implements Model, UnivariateModel<RealVar> {
   
   /**
    * Auxiliary method generated to translate:
-   * 100000
+   * pow(2, 5) as int - 1
    */
   private static Integer $generated__5(final RealVar mu) {
-    return Integer.valueOf(100000);
+    double _pow = Math.pow(2, 5);
+    int _minus = (((int) _pow) - 1);
+    return Integer.valueOf(_minus);
   }
   
   /**
    * Auxiliary method generated to translate:
-   * { val stats = new SummaryStatistics val rand = new Random(1) for (i : 0 .. n) stats.addValue(rand.normal(1000, 1)) System.out.println(stats.mean) stats.mean }
+   * { val stats = new SummaryStatistics val rand = new Random(1) for (i : 0 .. n) stats.addValue(rand.normal(100, 1)) System.out.println(stats.mean) stats.mean }
    */
   private static Double $generated__6(final RealVar mu, final Integer n) {
     double _xblockexpression = (double) 0;
@@ -238,7 +240,7 @@ public class ToyNormal implements Model, UnivariateModel<RealVar> {
       final Random rand = new Random(1);
       IntegerRange _upTo = new IntegerRange(0, (n).intValue());
       for (final Integer i : _upTo) {
-        stats.addValue(Generators.normal(rand, 1000, 1));
+        stats.addValue(Generators.normal(rand, 100, 1));
       }
       System.out.println(stats.getMean());
       _xblockexpression = stats.getMean();

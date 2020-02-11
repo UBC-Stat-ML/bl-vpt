@@ -12,15 +12,19 @@ import blang.core.RealDistribution;
 import blang.core.RealDistributionAdaptor;
 import blang.core.RealVar;
 import blang.core.UnivariateModel;
+import blang.distributions.Normal;
 import blang.inits.Arg;
 import blang.inits.DesignatedConstructor;
+import blang.types.AnnealingParameter;
 import blang.types.StaticUtils;
 import blang.types.internals.RealScalar;
 import ca.ubc.stat.blang.StaticJavaUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.Random;
 import java.util.function.Supplier;
+import ptanalysis.Annealers;
 import xlinear.Matrix;
 
 @SuppressWarnings("all")
@@ -49,13 +53,22 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
     }
     
     @Arg
-    public Matrix partialSums;
-    
-    private boolean partialSums_initialized = false;
+    public Optional<Matrix> partialSums;
     
     public ToyNormalSubsampled.Builder setPartialSums(final Matrix partialSums) {
-      partialSums_initialized = true;
-      this.partialSums = partialSums;
+      // work around typeRef(..) limitation
+      Optional<Matrix> $generated__dummy = null;
+      this.partialSums = Optional.of(partialSums);
+      return this;
+    }
+    
+    @Arg
+    public Optional<Boolean> useZeno;
+    
+    public ToyNormalSubsampled.Builder setUseZeno(final Boolean useZeno) {
+      // work around typeRef(..) limitation
+      Optional<Boolean> $generated__dummy = null;
+      this.useZeno = Optional.of(useZeno);
       return this;
     }
     
@@ -65,24 +78,36 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
       if (this.mu != null && this.mu.isPresent()) {
         mu = this.mu.get();
       } else {
-        mu = $generated__3();
+        mu = $generated__5();
       }
       final RealVar __mu = mu;
       Integer n;
       if (this.n != null && this.n.isPresent()) {
         n = this.n.get();
       } else {
-        n = $generated__4(mu);
+        n = $generated__6(mu);
       }
       final Integer __n = n;
-      if (!fromCommandLine && !partialSums_initialized)
-        throw new RuntimeException("Not all fields were set in the builder, e.g. missing partialSums");
+      Matrix partialSums;
+      if (this.partialSums != null && this.partialSums.isPresent()) {
+        partialSums = this.partialSums.get();
+      } else {
+        partialSums = $generated__7(mu, n);
+      }
       final Matrix __partialSums = partialSums;
+      Boolean useZeno;
+      if (this.useZeno != null && this.useZeno.isPresent()) {
+        useZeno = this.useZeno.get();
+      } else {
+        useZeno = $generated__8(mu, n, partialSums);
+      }
+      final Boolean __useZeno = useZeno;
       // Build the instance after boxing params
       return new ToyNormalSubsampled(
         __mu, 
         new ConstantSupplier(__n), 
-        new ConstantSupplier(__partialSums)
+        new ConstantSupplier(__partialSums), 
+        new ConstantSupplier(__useZeno)
       );
     }
   }
@@ -114,6 +139,13 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
     return $generated__partialSums.get();
   }
   
+  @Param
+  private final Supplier<Boolean> $generated__useZeno;
+  
+  public Boolean getUseZeno() {
+    return $generated__useZeno.get();
+  }
+  
   /**
    * Utility main method for posterior inference on this model
    */
@@ -125,7 +157,7 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
    * Auxiliary method generated to translate:
    * mu
    */
-  private static RealVar $generated__0(final RealVar mu, final Integer n, final Matrix partialSums) {
+  private static RealVar $generated__0(final RealVar mu, final Integer n, final Matrix partialSums, final Boolean useZeno) {
     return mu;
   }
   
@@ -153,10 +185,10 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
   
   /**
    * Auxiliary method generated to translate:
-   * 10 * 10
+   * 100 * 100
    */
   private static RealVar $generated__2() {
-    return new blang.core.RealConstant((10 * 10));
+    return new blang.core.RealConstant((100 * 100));
   }
   
   public static class $generated__2_class implements Supplier<RealVar> {
@@ -165,7 +197,7 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
     }
     
     public String toString() {
-      return "10 * 10";
+      return "100 * 100";
     }
     
     public $generated__2_class() {
@@ -175,19 +207,90 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
   
   /**
    * Auxiliary method generated to translate:
+   * new AnnealingParameter
+   */
+  private static AnnealingParameter $generated__3(final RealVar mu, final Integer n, final Matrix partialSums, final Boolean useZeno) {
+    AnnealingParameter _annealingParameter = new AnnealingParameter();
+    return _annealingParameter;
+  }
+  
+  /**
+   * Auxiliary method generated to translate:
+   * { if (useZeno) Annealers::zeno(mu, beta, partialSums, n) else Annealers::linear(mu, beta, partialSums, n) }
+   */
+  private static RealVar $generated__4(final Boolean useZeno, final Integer n, final RealVar mu, final Matrix partialSums, final AnnealingParameter beta) {
+    double _xifexpression = (double) 0;
+    if ((useZeno).booleanValue()) {
+      _xifexpression = Annealers.zeno((mu).doubleValue(), beta, partialSums, (n).intValue());
+    } else {
+      _xifexpression = Annealers.linear((mu).doubleValue(), beta, partialSums, (n).intValue());
+    }
+    return new blang.core.RealConstant(_xifexpression);
+  }
+  
+  public static class $generated__4_class implements Supplier<RealVar> {
+    public RealVar get() {
+      return $generated__4($generated__useZeno.get(), $generated__n.get(), mu, $generated__partialSums.get(), beta);
+    }
+    
+    public String toString() {
+      return "{ if (useZeno) Annealers::zeno(mu, beta, partialSums, n) else Annealers::linear(mu, beta, partialSums, n) }";
+    }
+    
+    private final Supplier<Boolean> $generated__useZeno;
+    
+    private final Supplier<Integer> $generated__n;
+    
+    private final RealVar mu;
+    
+    private final Supplier<Matrix> $generated__partialSums;
+    
+    private final AnnealingParameter beta;
+    
+    public $generated__4_class(final Supplier<Boolean> $generated__useZeno, final Supplier<Integer> $generated__n, final RealVar mu, final Supplier<Matrix> $generated__partialSums, final AnnealingParameter beta) {
+      this.$generated__useZeno = $generated__useZeno;
+      this.$generated__n = $generated__n;
+      this.mu = mu;
+      this.$generated__partialSums = $generated__partialSums;
+      this.beta = beta;
+    }
+  }
+  
+  /**
+   * Auxiliary method generated to translate:
    * latentReal
    */
-  private static RealVar $generated__3() {
+  private static RealVar $generated__5() {
     RealScalar _latentReal = StaticUtils.latentReal();
     return _latentReal;
   }
   
   /**
    * Auxiliary method generated to translate:
-   * 10
+   * pow(2, 5) as int - 1
    */
-  private static Integer $generated__4(final RealVar mu) {
-    return Integer.valueOf(10);
+  private static Integer $generated__6(final RealVar mu) {
+    double _pow = Math.pow(2, 5);
+    int _minus = (((int) _pow) - 1);
+    return Integer.valueOf(_minus);
+  }
+  
+  /**
+   * Auxiliary method generated to translate:
+   * Annealers::generatePartialSums(new Random(1), n, Normal::distribution(100,1))
+   */
+  private static Matrix $generated__7(final RealVar mu, final Integer n) {
+    Random _random = new Random(1);
+    Matrix _generatePartialSums = Annealers.generatePartialSums(_random, (n).intValue(), Normal.distribution(new blang.core.RealConstant(100), new blang.core.RealConstant(1)));
+    return _generatePartialSums;
+  }
+  
+  /**
+   * Auxiliary method generated to translate:
+   * true
+   */
+  private static Boolean $generated__8(final RealVar mu, final Integer n, final Matrix partialSums) {
+    return Boolean.valueOf(true);
   }
   
   /**
@@ -199,10 +302,11 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
    *     - second, all the params in the order they occur in the blang file
    * 
    */
-  public ToyNormalSubsampled(@DeboxedName("mu") final RealVar mu, @Param @DeboxedName("n") final Supplier<Integer> $generated__n, @Param @DeboxedName("partialSums") final Supplier<Matrix> $generated__partialSums) {
+  public ToyNormalSubsampled(@DeboxedName("mu") final RealVar mu, @Param @DeboxedName("n") final Supplier<Integer> $generated__n, @Param @DeboxedName("partialSums") final Supplier<Matrix> $generated__partialSums, @Param @DeboxedName("useZeno") final Supplier<Boolean> $generated__useZeno) {
     this.mu = mu;
     this.$generated__n = $generated__n;
     this.$generated__partialSums = $generated__partialSums;
+    this.$generated__useZeno = $generated__useZeno;
   }
   
   /**
@@ -212,13 +316,23 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
   public Collection<ModelComponent> components() {
     ArrayList<ModelComponent> components = new ArrayList();
     
-    { // Code generated by: mu ~ Normal(0, 10 * 10)
+    { // Code generated by: mu ~ Normal(0, 100 * 100)
       // Construction and addition of the factor/model:
       components.add(
         new blang.distributions.Normal(
-          $generated__0(mu, $generated__n.get(), $generated__partialSums.get()), 
+          $generated__0(mu, $generated__n.get(), $generated__partialSums.get(), $generated__useZeno.get()), 
           new $generated__1_class(), 
           new $generated__2_class()
+        )
+        );
+    }
+    { // Code generated by: | useZeno, n, mu, partialSums, AnnealingParameter beta = new AnnealingParameter ~ LogPotential({ if (useZeno) Annealers::zeno(mu, beta, partialSums, n) else Annealers::linear(mu, beta, partialSums, n) })
+      // Required initialization:
+      AnnealingParameter beta = $generated__3(mu, $generated__n.get(), $generated__partialSums.get(), $generated__useZeno.get());
+      // Construction and addition of the factor/model:
+      components.add(
+        new blang.distributions.LogPotential(
+          new $generated__4_class($generated__useZeno, $generated__n, mu, $generated__partialSums, beta)
         )
         );
     }
@@ -235,11 +349,12 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
    * Useful when passing around distributions as parameters, e.g. for Dirichlet Process mixtures. 
    * 
    */
-  public static RealDistribution distribution(@Param final Integer n, @Param final Matrix partialSums) {
+  public static RealDistribution distribution(@Param final Integer n, @Param final Matrix partialSums, @Param final Boolean useZeno) {
     UnivariateModel<RealVar> univariateModel = new ToyNormalSubsampled(
       new RealDistributionAdaptor.WritableRealVarImpl(), 
       new ConstantSupplier(n), 
-      new ConstantSupplier(partialSums)
+      new ConstantSupplier(partialSums), 
+      new ConstantSupplier(useZeno)
     );
     Distribution<RealVar> distribution = new DistributionAdaptor(univariateModel);
     return new RealDistributionAdaptor(distribution);
