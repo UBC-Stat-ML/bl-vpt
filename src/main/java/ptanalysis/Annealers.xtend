@@ -1,13 +1,10 @@
 package ptanalysis
 
 import blang.types.AnnealingParameter
-import java.util.List
 import blang.core.RealDistribution
 import xlinear.Matrix
 import xlinear.MatrixOperations
 import java.util.Random
-import blang.distributions.Normal
-import static blang.types.StaticUtils.fixedReal
 
 class Annealers {
   
@@ -54,6 +51,8 @@ class Annealers {
     }
     return result.readOnlyView
   }
+  
+  
   
 //  def static void main(String [] args) {
 //    val Random rand = new Random(1)

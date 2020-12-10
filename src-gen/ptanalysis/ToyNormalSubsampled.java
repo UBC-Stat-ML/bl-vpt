@@ -267,21 +267,21 @@ public class ToyNormalSubsampled implements Model, UnivariateModel<RealVar> {
   
   /**
    * Auxiliary method generated to translate:
-   * pow(2, 5) as int - 1
+   * pow(2, 10) as int - 1
    */
   private static Integer $generated__6(final RealVar mu) {
-    double _pow = Math.pow(2, 5);
+    double _pow = Math.pow(2, 10);
     int _minus = (((int) _pow) - 1);
     return Integer.valueOf(_minus);
   }
   
   /**
    * Auxiliary method generated to translate:
-   * Annealers::generatePartialSums(new Random(1), n, Normal::distribution(100,1))
+   * Annealers::generatePartialSums(new Random(1), n, Normal::distribution(1000,1))
    */
   private static Matrix $generated__7(final RealVar mu, final Integer n) {
     Random _random = new Random(1);
-    Matrix _generatePartialSums = Annealers.generatePartialSums(_random, (n).intValue(), Normal.distribution(new blang.core.RealConstant(100), new blang.core.RealConstant(1)));
+    Matrix _generatePartialSums = Annealers.generatePartialSums(_random, (n).intValue(), Normal.distribution(new blang.core.RealConstant(1000), new blang.core.RealConstant(1)));
     return _generatePartialSums;
   }
   
