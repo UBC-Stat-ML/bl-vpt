@@ -55,9 +55,7 @@ class Sinkhorn {
     for (i : 0 ..< n) 
       for (j : 0 ..< n)
         result.set(i, j, u.get(i) * v.get(j) * exponentiatedCosts.get(i, j))
-    println(result.sum)
     result /= result.sum
-    println(result.sum)
   }
   
   def checkSymmetric(Matrix matrix) {
@@ -73,7 +71,6 @@ class Sinkhorn {
     for (i : 0 ..< result.nEntries)
       result.set(i, pi.get(i) / product.get(i))
     result /= result.sum
-    //println("Iterate: " + result)
     return result
   }
   
@@ -118,19 +115,17 @@ class Sinkhorn {
   
   
   def static void main(String [] args) {
-    // Basic MH setup
-//    val pi = denseCopy(#[0.2, 0.8])
-//    val costs = denseCopy(#[
-//      #[1, 0],
-//      #[0, 1]
-//    ])
-//    report(pi, costs, 10.0)
+    println("Basic MH example")
+    val pi = denseCopy(#[0.2, 0.8])
+    val costs = denseCopy(#[
+      #[1, 0],
+      #[0, 1]
+    ])
+    report(pi, costs, 10.0)
     
-    // Ising example
+    println("Ising example")    
     val ising = new Ising(3)
     report(ising.pi, ising.costs, 1.0)
-    
-    
   }
   
   @Data
@@ -189,7 +184,7 @@ class Sinkhorn {
   
   def static void report(Matrix pi, Matrix costs, double lambda) {
     val it = new Sinkhorn(pi, costs, lambda, 100)
-    //checkMarginals()
+    checkMarginals()
     
     println("Sink: " + totalCost(result))
     
