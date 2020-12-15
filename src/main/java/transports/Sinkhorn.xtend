@@ -15,7 +15,7 @@ class Sinkhorn {
   val Matrix pi
   val Matrix exponentiatedCosts
   val Matrix costs
-  val Matrix result
+  public val Matrix result
   
   def n() { pi.nEntries }
   
@@ -112,6 +112,13 @@ class Sinkhorn {
     return q * r
   }
   
+  def static double expectedPeskunBernoulli(double p) {
+    val pi = #[p]
+    val product = new Product(pi)
+    val sink = new Sinkhorn(product.pi, product.costs, 10.0, 1)
+    val pesk = sink.peskun
+    return sink.totalCost(pesk)
+  }
   
   
   def static void main(String [] args) {
@@ -119,14 +126,18 @@ class Sinkhorn {
     val eps = 0.1
     var bestRatio = Double.POSITIVE_INFINITY
     for (var double p1 = eps; p1 <= 1.0 - eps; p1 += eps)
-      for (var double p2 = eps; p2 <= p1; p2 += eps) {
+      for (var double p2 = eps; p2 <= p1; p2 += eps) { 
         val product = new Product(#[p1, p2])
         val pi = product.pi
         val costs = product.costs
         println("" + p1 + ", " + p2)
-        val currentRatio = report(pi, costs, 1.0)
+        val currentRatio = report(pi, costs, 10.0)
         if (currentRatio < bestRatio)
           bestRatio = currentRatio
+          
+        println("Decomposed pesk=" + (expectedPeskunBernoulli(p1) + expectedPeskunBernoulli(p2)))
+          
+        println("---")
       }
       
     println("best=" +bestRatio)
