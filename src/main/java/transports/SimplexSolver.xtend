@@ -16,11 +16,7 @@ import org.apache.commons.math3.optim.linear.NonNegativeConstraint
 @Data
 class SimplexSolver implements TransportSolver {
   
-  new() {
-    this.implementation = new org.apache.commons.math3.optim.linear.SimplexSolver()
-  }
-  
-  val extension org.apache.commons.math3.optim.linear.SimplexSolver implementation
+  val extension org.apache.commons.math3.optim.linear.SimplexSolver implementation = new org.apache.commons.math3.optim.linear.SimplexSolver()
   
   override Plan solve(TransportProblem problem) {
     val CoordinatePacker index = new CoordinatePacker(#[problem.cost.nRows, problem.cost.nCols])
