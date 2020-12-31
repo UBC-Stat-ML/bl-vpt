@@ -2,7 +2,7 @@ package transports
 
 import bayonet.math.CoordinatePacker
 
-class Product extends Target {
+class Product extends InvarianceTransportProductSpace {
   val double [] prs  // Bernoulli parameters
   
   def n() { prs.length }
@@ -23,10 +23,10 @@ class Product extends Target {
     else throw new RuntimeException
   }
   
-  override gamma(int[] s) {
+  override logWeight(int[] s) {
     var it = 1.0
     for (p : 0 ..< n)
-      it *= pr(p, s)
+      it += Math::log(pr(p, s))
     return it
   }
   

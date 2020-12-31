@@ -7,7 +7,7 @@ import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
 
 @Data
-class Ising extends Target {
+class Ising extends InvarianceTransportProductSpace {
   val int m
   val List<UnorderedPair<Integer, Integer>>  pairs
   val beta = Math::log(1 + Math::sqrt(2.0)) / 2.0 // critical point
@@ -23,14 +23,14 @@ class Ising extends Target {
     pairs = Functions.squareIsingEdges(m)
   }
   
-  override gamma(int [] s) {
+  override logWeight(int [] s) {
     var sum = 0.0
     for (pair : pairs) {
       val first = s.get(pair.first)
       val second = s.get(pair.second)
       sum += (2*first-1)*(2*second-1)
     }
-    return Math::exp(beta * sum)
+    return beta * sum
   }
   
   override cost(int [] s1, int [] s2) {
