@@ -10,13 +10,14 @@ import com.google.common.collect.Sets
 class BipartiteSwapTransport extends 
       InvarianceTransportGeneralSpace<Set<Integer>> { // the set of integer is the set of states in the first component
   
-  val double[][] logWeights // state -> energy ladder -> logWeight (i.e., -energy)
+  val double[][] logWeights // state -> energy ladder {0, 1} -> logWeight (i.e., -energy)
   val int sizeOfEachComponent
   
-  new(int sizeOfEachComponent, double [][] logWeights) {
-    super(new Indexer<Set<Integer>>(createSets(sizeOfEachComponent))) 
+  new(double [][] logWeights) {
+    super(new Indexer<Set<Integer>>(createSets(logWeights.size / 2))) 
+    if (logWeights.size % 2 == 1) throw new RuntimeException
     this.logWeights = logWeights
-    this.sizeOfEachComponent = sizeOfEachComponent
+    this.sizeOfEachComponent = logWeights.size / 2
   }
   
   def static Set<Set<Integer>> createSets(int sizeOfEachComponent) {
@@ -28,7 +29,7 @@ class BipartiteSwapTransport extends
   
   override logWeight(Set<Integer> s) {
     var it = 0.0
-    for (i : 0 ..< sizeOfEachComponent)
+    for (i : 0 ..< sizeOfEachComponent*2)
       it += logWeights.get(i).get(if (s.contains(i)) 0 else 1)
     return it
   }
