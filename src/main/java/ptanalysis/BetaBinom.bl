@@ -1,0 +1,16 @@
+package ptanalysis
+
+model BetaBinom {
+  
+  param RealVar alpha ?: 9, beta ?: 0.75
+  param IntVar n ?: 550
+  random RealVar theta ?: latentReal
+  random IntVar k ?: 115
+  
+  laws {
+    theta | alpha, beta ~ Beta(alpha, beta)
+    k | theta, n ~ Binomial(n, theta)
+  }
+  
+  
+}
