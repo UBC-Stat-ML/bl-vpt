@@ -13,12 +13,15 @@ import java.util.Collections
 import java.util.List
 import java.util.ArrayList
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics
+import java.util.Random
 
 class BipartiteSwapExperiment extends Experiment {
   
   @Arg File exec
   
   @Arg @DefaultValue("2") int nPerComponent = 2
+  
+  @Arg @DefaultValue("1") Random rand = new Random(1)
   
   override run() {
     // load annealingParam data (discard burn in)
@@ -42,28 +45,32 @@ class BipartiteSwapExperiment extends Experiment {
       .indexCSV
       .filter[sample > burnIn]
       .groupBy[chain]
-      .mapValues[it.map[value]]
+      .mapValues[map[value]]
     val nSamples = chain2samples.values.head.size
     println("Loaded " + nSamples + " post burn-in samples")
     
     for (chain : 0 ..< nChains - 1) {
-      val stats = new SummaryStatistics
-      //Collections::shuffle(chain2samples.get(chain))
-      //Collections::shuffle(chain2samples.get(chain + 1))
+      val transportStats = new SummaryStatistics
+      val naiveStats = new SummaryStatistics
+      val samples0 = new ArrayList(chain2samples.get(chain))
+      val samples1 = new ArrayList(chain2samples.get(chain + 1))
+      //Collections::shuffle(samples0, rand)
+      //Collections::shuffle(samples1, rand)
       for (sample : 0 ..< nSamples - nPerComponent) {
         val energies = new ArrayList<Double> => [
-          addAll(chain2samples.get(chain    ).subList(sample, sample + nPerComponent))
-          addAll(chain2samples.get(chain + 1).subList(sample, sample + nPerComponent))
+          addAll(samples0.subList(sample, sample + nPerComponent))
+          addAll(samples1.subList(sample, sample + nPerComponent))
         ]
         val logWeights = logWeights(energies, #[chain2param.get(chain), chain2param.get(chain + 1)])
         val bipartiteSwap = new BipartiteSwapTransport(logWeights)
         val plan = (new SimplexSolver).solve(bipartiteSwap.transport)
-        stats.addValue(plan.cost/nPerComponent) 
-//        val explicitLogRatio = (chain2param.get(chain) - chain2param.get(chain + 1)) * (energies.get(0) - energies.get(1))
-//        val explicitRejPr = Math.min(1.0, Math.exp(explicitLogRatio))
-//        println("" + explicitRejPr + " vs " + plan.cost)
+        transportStats.addValue(plan.cost/nPerComponent) 
+        
+        val naiveLogRatio = (chain2param.get(chain) - chain2param.get(chain + 1)) * (samples0.get(sample) - samples1.get(sample))
+        val naiveRejPr = Math.min(1.0, Math.exp(naiveLogRatio))
+        naiveStats.addValue(naiveRejPr)
       }
-      println("" + chain + "\t" + stats.mean)
+      println("" + chain + "\t" + transportStats.mean + "\t" + naiveStats.mean)
     }
   }
   
