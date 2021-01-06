@@ -49,13 +49,15 @@ class BipartiteSwapExperiment extends Experiment {
     val nSamples = chain2samples.values.head.size
     println("Loaded " + nSamples + " post burn-in samples")
     
+    var sumInefficiencies = 0.0
+    var sumLambda = 0.0
     for (chain : 0 ..< nChains - 1) {
       val transportStats = new SummaryStatistics
       val naiveStats = new SummaryStatistics
       val samples0 = new ArrayList(chain2samples.get(chain))
       val samples1 = new ArrayList(chain2samples.get(chain + 1))
-      //Collections::shuffle(samples0, rand)
-      //Collections::shuffle(samples1, rand)
+      Collections::shuffle(samples0, rand)
+      Collections::shuffle(samples1, rand)
       for (sample : 0 ..< nSamples - nPerComponent) {
         val energies = new ArrayList<Double> => [
           addAll(samples0.subList(sample, sample + nPerComponent))
@@ -64,13 +66,18 @@ class BipartiteSwapExperiment extends Experiment {
         val logWeights = logWeights(energies, #[chain2param.get(chain), chain2param.get(chain + 1)])
         val bipartiteSwap = new BipartiteSwapTransport(logWeights)
         val plan = (new SimplexSolver).solve(bipartiteSwap.transport)
-        transportStats.addValue(plan.cost/nPerComponent) 
+        val transportR = plan.cost/nPerComponent
+        transportStats.addValue(transportR) 
+        sumLambda += transportR
+        sumInefficiencies +=  transportR / (1.0 - transportR)
+        
         
         val naiveLogRatio = (chain2param.get(chain) - chain2param.get(chain + 1)) * (samples0.get(sample) - samples1.get(sample))
-        val naiveRejPr = Math.min(1.0, Math.exp(naiveLogRatio))
-        naiveStats.addValue(naiveRejPr)
+        val naiveAcceptPr = Math.min(1.0, Math.exp(naiveLogRatio))
+        naiveStats.addValue(1.0 - naiveAcceptPr)
       }
-      println("" + chain + "\t" + transportStats.mean + "\t" + naiveStats.mean)
+      println("" + chain + "\t" + transportStats.mean + "\t" + naiveStats.mean) // note: slightly diff b/c we randomize start point in the transport version!
+      
     }
   }
   
