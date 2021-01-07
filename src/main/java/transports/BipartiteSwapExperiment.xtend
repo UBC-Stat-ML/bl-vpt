@@ -53,7 +53,6 @@ class BipartiteSwapExperiment extends Experiment {
     var sumLambda = 0.0
     for (chain : 0 ..< nChains - 1) {
       val transportStats = new SummaryStatistics
-      val naiveStats = new SummaryStatistics
       val samples0 = new ArrayList(chain2samples.get(chain))
       val samples1 = new ArrayList(chain2samples.get(chain + 1))
       Collections::shuffle(samples0, rand)
@@ -66,19 +65,18 @@ class BipartiteSwapExperiment extends Experiment {
         val logWeights = logWeights(energies, #[chain2param.get(chain), chain2param.get(chain + 1)])
         val bipartiteSwap = new BipartiteSwapTransport(logWeights)
         val plan = (new SimplexSolver).solve(bipartiteSwap.transport)
-        val transportR = plan.cost/nPerComponent
-        transportStats.addValue(transportR) 
-        sumLambda += transportR
-        sumInefficiencies +=  transportR / (1.0 - transportR)
+        transportStats.addValue(plan.cost/nPerComponent) 
         
-        
-        val naiveLogRatio = (chain2param.get(chain) - chain2param.get(chain + 1)) * (samples0.get(sample) - samples1.get(sample))
-        val naiveAcceptPr = Math.min(1.0, Math.exp(naiveLogRatio))
-        naiveStats.addValue(1.0 - naiveAcceptPr)
       }
-      println("" + chain + "\t" + transportStats.mean + "\t" + naiveStats.mean) // note: slightly diff b/c we randomize start point in the transport version!
-      
+      val r =  transportStats.mean
+      sumLambda += r
+      sumInefficiencies +=  r / (1.0 - r)
+      println("" + chain + "\t" + r) 
     }
+    results.getTabularWriter("results").printAndWrite(
+        "asymptoticBarrier" -> sumLambda,
+        "barrier" -> sumInefficiencies
+      )
   }
   
   def double [][] logWeights(List<Double> energies, List<Double> annealParams) {
