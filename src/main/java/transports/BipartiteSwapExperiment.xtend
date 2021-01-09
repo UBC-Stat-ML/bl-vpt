@@ -81,7 +81,7 @@ class BipartiteSwapExperiment extends Experiment {
           val ratio = (chain2param.get(chain + 1) - chain2param.get(chain)) * deltaE
           val accept = Math::min(1.0, Math::exp(ratio))
           val reject = 1.0 - accept
-          transportStats.addValue(reject/nPerComponent) 
+          transportStats.addValue(reject) 
           
         } else {
         
