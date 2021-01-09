@@ -60,30 +60,31 @@ class BipartiteSwapExperiment extends Experiment {
       Collections::shuffle(samples0, rand)
       Collections::shuffle(samples1, rand)
       for (sample : 0 ..< nSamples - nPerComponent) {
-        val energies = new ArrayList<Double> => [
-          addAll(samples0.subList(sample, sample + nPerComponent))
-          addAll(samples1.subList(sample, sample + nPerComponent))
-        ]
+        
         
         if (useWass) {
           
           // sort
-          val subList1 = new ArrayList(samples0.subList(sample, sample + nPerComponent))
-          val subList2 = new ArrayList(samples1.subList(sample, sample + nPerComponent))
-          
+          val subList0 = new ArrayList(samples0.subList(sample, sample + nPerComponent))
+          val subList1 = new ArrayList(samples1.subList(sample, sample + nPerComponent))
+          Collections::sort(subList0)
           Collections::sort(subList1)
-          Collections::sort(subList2)
           
           var deltaE = 0.0
-          for (int i : 0 ..< subList1.size) {
-            deltaE += subList1.get(i) - subList2.get(i)
+          for (int i : 0 ..< subList0.size) {
+            deltaE += subList0.get(i) - subList1.get(i)
           }
-          val ratio = (chain2param.get(chain + 1) - chain2param.get(chain)) * deltaE
+          val ratio = (chain2param.get(chain) - chain2param.get(chain + 1)) * deltaE
           val accept = Math::min(1.0, Math::exp(ratio))
           val reject = 1.0 - accept
           transportStats.addValue(reject) 
           
         } else {
+          
+          val energies = new ArrayList<Double> => [
+            addAll(samples0.subList(sample, sample + nPerComponent))
+            addAll(samples1.subList(sample, sample + nPerComponent))
+          ]
         
           val logWeights = logWeights(energies, #[chain2param.get(chain), chain2param.get(chain + 1)])
           val bipartiteSwap = new BipartiteSwapTransport(logWeights)
