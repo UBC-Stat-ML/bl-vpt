@@ -23,6 +23,8 @@ class BipartiteSwapExperiment extends Experiment {
   
   @Arg @DefaultValue("1") Random rand = new Random(1)
   
+  @Arg @DefaultValue("false") boolean useWass = false
+  
   override run() {
     // load annealingParam data (discard burn in)
     val monitoringFolder = new File(exec, "monitoring")
@@ -62,10 +64,33 @@ class BipartiteSwapExperiment extends Experiment {
           addAll(samples0.subList(sample, sample + nPerComponent))
           addAll(samples1.subList(sample, sample + nPerComponent))
         ]
-        val logWeights = logWeights(energies, #[chain2param.get(chain), chain2param.get(chain + 1)])
-        val bipartiteSwap = new BipartiteSwapTransport(logWeights)
-        val plan = (new SimplexSolver).solve(bipartiteSwap.transport)
-        transportStats.addValue(plan.cost/nPerComponent) 
+        
+        if (useWass) {
+          
+          // sort
+          val subList1 = new ArrayList(samples0.subList(sample, sample + nPerComponent))
+          val subList2 = new ArrayList(samples1.subList(sample, sample + nPerComponent))
+          
+          Collections::sort(subList1)
+          Collections::sort(subList2)
+          
+          var deltaE = 0.0
+          for (int i : 0 ..< subList1.size) {
+            deltaE += subList1.get(i) - subList2.get(i)
+          }
+          val ratio = (chain2param.get(chain + 1) - chain2param.get(chain)) * deltaE
+          val accept = Math::min(1.0, Math::exp(ratio))
+          val reject = 1.0 - accept
+          transportStats.addValue(reject/nPerComponent) 
+          
+        } else {
+        
+          val logWeights = logWeights(energies, #[chain2param.get(chain), chain2param.get(chain + 1)])
+          val bipartiteSwap = new BipartiteSwapTransport(logWeights)
+          val plan = (new SimplexSolver).solve(bipartiteSwap.transport)
+          transportStats.addValue(plan.cost/nPerComponent) 
+        
+        }
         
       }
       val r =  transportStats.mean
