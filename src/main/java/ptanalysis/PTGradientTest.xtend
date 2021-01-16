@@ -17,10 +17,15 @@ class PTGradientTest implements ProbabilitySpace {
   val double delta
   
   val rand = new Random(1)
+  
   def double mu(int i) { if (i === 0) 0.0 else if (i === 1) delta else throw new RuntimeException }
+  
   val List<Double> Xs = new ArrayList(#[null, null])
+  
   def X(int i) { Xs.get(i) }
+  
   def W(int i, double x) { 0.5 * ((x - mu(i)) ** 2) }
+  
   def W(int i)  { W(i, X(i)) }
   def tW(int i) { W(i, X(1-i)) }
   
@@ -29,9 +34,11 @@ class PTGradientTest implements ProbabilitySpace {
   def tWp() { delta - X(0) }
   
   def D() { -tW(0) - tW(1) + W(0) + W(1) }
+  
   def R() { exp(D) }
   
   def T() { if (R >= 1.0) 1.0 else 0.0 }
+  
   def U() { 1.0 - T }
   
   def H() { exp(-W(0) -W(1)) / 2.0 / PI }
@@ -47,9 +54,11 @@ class PTGradientTest implements ProbabilitySpace {
   }
   
   def static void main(String [] args) {
-    val delta = 20.1
+    val delta = 2.1
+    val analyticObjective = (2.0 * Phi(- sqrt(delta * delta / 2.0))) // from Atchade et al (this is an accept!)
     val analyticGradient = - exp(- delta * delta / 4.0) / sqrt(PI)
     new PTGradientTest(delta) => [
+      
       
 //      val e6 = 2.0 * E[T * Hp / H]
 //      println("e6 = " + e6)
@@ -60,17 +69,25 @@ class PTGradientTest implements ProbabilitySpace {
 //      println( "e4 = " + E[Rp * U] )
 //      
 //      val e5 = E[T * tHp / t]
+
+      println("LHS = accept = " + E[min(R, 1)])
+      val SKL = 1.0 - Math::sqrt(0.5*(E[tW(0) + tW(1) - W(0) - W(1)]))
+      println("RHS = 1- sqrt(SKL) = " + SKL)
+      println("sqrt 0.5 MC SD = " + Math::sqrt(0.5*(mcSE[tW(0) + tW(1) - W(0) - W(1)])))
+      println("obj MC SD = " + mcSE[min(R, 1)])
       
-//      println("Checking D is N(-d^2, 2d^2)")
-//      println( "E: " + E[D] + " " +  -(delta ** 2))
-//      println( "Var: " + Var[D] + " " + (2.0 * (delta ** 2)))
-//      println("---")
-//      
-      println("Checking Atchade formula")
-      println( E[min(R, 1)] + " " + (2.0 * Phi(- sqrt(delta * delta / 2.0))))
+      println("Checking D is N(-d^2, 2d^2)")
+      println( "E: " + E[D] + " " +  -(delta ** 2))
+      println( "Var: " + Var[D] + " " + (2.0 * (delta ** 2)))
       println("---")
 //      
-//      println("Analytic gradient = " + analyticGradient)
+      println("Checking Atchade formula")
+      println( E[min(R, 1)] + " " + analyticObjective) // this is an acceptance!
+      println("---")
+      
+      
+//      
+      println("Analytic gradient = " + analyticGradient)
 //      
 //      var firstExpr = E[Hp * R * U / H] + E[Rp * U] + E[Hp * T / H]
 //      println("first expr = " + firstExpr)
@@ -88,8 +105,21 @@ class PTGradientTest implements ProbabilitySpace {
 //      println("final expr = " + finalExpr)
 //      
 //      
-//      var oldExpr = 2.0 * Covar([U], [-tWp])
-//      println("old expr = " + oldExpr) // was OK up to a sign!  -0.4168412851034218 vs. -0.41691832364572884
+      
+      
+      println("cross term: " + E[T * Wp])
+      println("ET: " + E[T])
+      println("EWp: " + E[Wp])
+      
+      println("MC SD for cross term: " + mcSE[T * Wp])
+      println("MC SD for T: " + mcSE[T])
+      println("MC SD for Wp: " + mcSE[Wp])
+      
+      var oldExpr = 2.0 * Covar([T], [Wp]) // this is the gradient of a rejection, so sign flip is expected!
+      println("old expr = " + oldExpr) // was OK up to a sign!  -0.4168412851034218 vs. -0.41691832364572884
+      
+      
+      
       
       /*
 

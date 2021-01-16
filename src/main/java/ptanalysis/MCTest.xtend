@@ -5,13 +5,19 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 
 class MCTest {
   
+  public static var numberMonteCarloIterations = 10_000
+  
   interface ProbabilitySpace {
     def void next()
   }
   
+  def static double mcSE(ProbabilitySpace it, ()=>Double function) {
+    SD(function) / Math::sqrt(numberMonteCarloIterations)
+  }
+  
   def static double E(ProbabilitySpace space, ()=>Double function) {
     val stats = new SummaryStatistics
-    for (i : 0 .. 100_000) {
+    for (i : 0 ..< numberMonteCarloIterations) {
       space.next
       stats.addValue(function.apply)
     }
@@ -25,6 +31,8 @@ class MCTest {
   def static double Var(ProbabilitySpace it, ()=>Double function) {
     return E[function.apply ** 2] - E[function.apply] ** 2
   }
+  
+  def static double SD(ProbabilitySpace it, ()=>Double function) { Math::sqrt(Var(function))}
   
   def static double Covar(ProbabilitySpace it, ()=>Double var1, ()=>Double var2) {
     return E[var1.apply * var2.apply] - E(var1) * E(var2)
