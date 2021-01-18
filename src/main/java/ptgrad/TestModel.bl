@@ -1,0 +1,19 @@
+package ptgrad
+
+import ptgrad.Interpolation
+
+model TestModel {
+  
+  param Interpolation interpolation 
+  random Map<String,RealVar> variables ?: interpolation.variables
+  
+  laws {
+    logf(interpolation, AnnealingParameter beta = new AnnealingParameter) {
+      interpolation.logDensity(beta)
+    }
+  }
+  
+  generate(rnd) { 
+    interpolation.sample(rnd)
+  }
+}
