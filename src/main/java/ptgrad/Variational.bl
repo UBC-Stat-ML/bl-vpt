@@ -2,7 +2,7 @@ package ptgrad
 
 import ptgrad.Interpolation
 
-model TestModel {
+model Variational {
   
   param Interpolation interpolation 
   random Map<String,RealVar> variables ?: interpolation.variables
