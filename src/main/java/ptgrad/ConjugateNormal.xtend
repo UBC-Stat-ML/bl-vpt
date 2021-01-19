@@ -21,6 +21,7 @@ class ConjugateNormal extends Interpolation {
   val static String _variable_x = "x"
   
   val observation = 3.0
+  val posteriorVariance = 0.5
   
   def DerivativeStructure paramMu(List<DerivativeStructure> it) { get(_param_mu) }
   def WritableRealVar x() { return variables.get(_variable_x) as WritableRealVar }
@@ -31,17 +32,18 @@ class ConjugateNormal extends Interpolation {
     val it = inputs.get(0)
     val zero = constant(0.0)
     val one = constant(1.0)
+    val half = constant(posteriorVariance)
     val x = constant(x.doubleValue)
     val y = constant(observation)
     return 
-      beta * normalLogDensity(y, x, one) + // likelihood
-      (1.0 - beta) * normalLogDensity(x, paramMu, one) + // variational distribution
-      beta * normalLogDensity(x, zero, one) // prior
+      beta * normalLogDensity(y, x, one) +                  // likelihood
+      (1.0 - beta) * normalLogDensity(x, paramMu, half) +   // variational distribution
+      beta * normalLogDensity(x, zero, one)                 // prior
   }
   
   override sample(Random random, List<DerivativeStructure> it) {
     val paramMu = paramMu
-    x.set(Generators::normal(random, paramMu.value, 1.0))
+    x.set(Generators::normal(random, paramMu.value, posteriorVariance))
   }
   
   new() {

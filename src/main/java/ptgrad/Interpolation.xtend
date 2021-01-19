@@ -29,10 +29,9 @@ abstract class Interpolation implements Differentiable {
   val Indexer<String> parameterComponents
   
   @SkipDependency(isMutable = false)
-  var DenseMatrix parameters
+  public var DenseMatrix parameters
   val int p
   def void setParameters(DenseMatrix parameters) { this.parameters = parameters }
-  
   
   // APIs to subclass
   // Convention: last item in list will be beta
