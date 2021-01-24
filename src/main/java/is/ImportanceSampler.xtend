@@ -1,4 +1,4 @@
-package ptgrad.is
+package is
 
 import xlinear.DenseMatrix
 

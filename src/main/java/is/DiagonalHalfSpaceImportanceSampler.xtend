@@ -1,4 +1,4 @@
-package ptgrad.is
+package is
 
 import java.util.Collections
 import java.util.TreeSet

@@ -1,4 +1,4 @@
-package ptgrad.is
+package is
 
 import org.eclipse.xtext.xbase.lib.Functions.Function1
 import xlinear.DenseMatrix
