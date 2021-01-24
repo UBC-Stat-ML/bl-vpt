@@ -15,6 +15,10 @@ import java.util.ArrayList
 import blang.inits.Implementations
 import blang.runtime.internals.objectgraph.SkipDependency
 
+/**
+ * One point in a sequence of distributions from a tractable one to 
+ * an intractable one.
+ */
 @Implementations(ConjugateNormal)
 abstract class Interpolation implements Differentiable {
   // variables need to be populated right away at construction time
@@ -26,6 +30,7 @@ abstract class Interpolation implements Differentiable {
   }
   
   // ("variational") parameters
+  @SkipDependency(isMutable = false)
   val Indexer<String> parameterComponents
   
   @SkipDependency(isMutable = false)

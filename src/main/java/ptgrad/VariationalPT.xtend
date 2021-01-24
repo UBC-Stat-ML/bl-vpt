@@ -7,6 +7,7 @@ import blang.inits.Arg
 import blang.engines.internals.factories.PT
 import xlinear.DenseMatrix
 import blang.engines.ParallelTempering
+import xlinear.AutoDiff
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -27,7 +28,7 @@ class VariationalPT implements PosteriorInferenceEngine {
     for (var double phi = -3; phi < 3; phi += 0.1) {
       parameters.set(0, phi)
       iterate(100)
-      println("" + phi + "\t" + inefficiency)
+      println("" + phi + "\t" + inefficiency + " ")
     }
   }
   

@@ -27,8 +27,8 @@ class ConjugateNormal extends Interpolation {
   def WritableRealVar x() { return variables.get(_variable_x) as WritableRealVar }
   
   override DerivativeStructure logDensity(List<DerivativeStructure> inputs) {
-    val paramMu = paramMu(inputs)
-    val beta = beta(inputs)
+    val paramMu = inputs.paramMu
+    val beta = inputs.beta
     val it = inputs.get(0)
     val zero = constant(0.0)
     val one = constant(1.0)
