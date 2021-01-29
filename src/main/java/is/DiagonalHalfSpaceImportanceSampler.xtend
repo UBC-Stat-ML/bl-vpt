@@ -8,6 +8,7 @@ import xlinear.DenseMatrix
 import static xlinear.MatrixOperations.*
 
 import static extension xlinear.MatrixExtensions.*
+import java.util.ArrayList
 
 /**
    * 
@@ -19,6 +20,8 @@ import static extension xlinear.MatrixExtensions.*
    * Computes  
    * sum_i sum_j I[f1_i > f2_j] G1_i w1_i G2_j w2_j
    * in n log n, where n is the max size of the 2 lists
+   * 
+   * if strict is false, then instead uses f1_i >= f2_j
    */
 @Data
 class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
@@ -32,6 +35,8 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
   val (T2)=>Double f2
   val (T2)=>DenseMatrix G2
   val (T2)=>Double weightFunction2
+  
+  val boolean strict
   
   def DenseMatrix pow(DenseMatrix m, int p) {
     return m.copy => [editInPlace[_, __, v|Math::pow(v, p)]]
@@ -69,7 +74,11 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     
     var DenseMatrix result = null
     for (it : samples1) {
-      val cumsum = sorted.lower(new CumulativeSum<T2>(f1.apply(it), null))
+      val cumsum = 
+        if (strict)
+          sorted.lower(new CumulativeSum<T2>(f1.apply(it), null))
+        else 
+          sorted.floor(new CumulativeSum<T2>(f1.apply(it), null))
       if (cumsum === null) {
         // nothing to do, this first group of terms is killed by the indicator
       } else {
@@ -111,6 +120,36 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     }
   }
   
+  def StandardImportanceSampler<Pair<T1,T2>> asCosltyStandardSampler() {
+    val zero = denseCopy(#[0.0])
+    StandardImportanceSampler::productSampler(samples1, weightFunction1, samples2, weightFunction2) [ 
+        val s1 = key
+        val s2 = value
+        if (f1.apply(s1) > f2.apply(s2) || (!strict && f1.apply(s1) == f2.apply(s2))) G1.apply(s1) * G2.apply(s2) else zero
+      ]
+  }
+  
+  def StandardImportanceSampler<Pair<T1,T2>> asNaiveStandardSampler() {
+    val paired = new ArrayList<Pair<T1,T2>>()
+    val list1 = samples1.toList
+    val list2 = samples2.toList
+    for (i : 0 ..< Math::min(list1.size, list2.size))
+      paired.add(list1.get(i) -> list2.get(i))
+    val zero = denseCopy(#[0.0])
+    return new StandardImportanceSampler(paired, 
+      [
+        val s1 = key
+        val s2 = value
+        if (f1.apply(s1) > f2.apply(s2) || (!strict && f1.apply(s1) == f2.apply(s2))) G1.apply(s1) * G2.apply(s2) else zero
+      ],
+      [
+        val s1 = key
+        val s2 = value
+        weightFunction1.apply(s1) * weightFunction2.apply(s2)
+      ]
+    )
+  }
+  
   def static void main(String [] args) {
     
     val samples1 = (3 .. 5).map[it as double as Double].toList => [Collections::shuffle(it) ]
@@ -127,15 +166,10 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     
     val fancySampler = new DiagonalHalfSpaceImportanceSampler(
         samples1, f1,  G1, w1, 
-        samples2, f2,  G2, w2
+        samples2, f2,  G2, w2, true
     )
     
-    val zero = denseCopy(#[0.0])
-    val naiveSampler = StandardImportanceSampler::naiveProductSampler(samples1, w1, samples2, w2) [ 
-        val s1 = key
-        val s2 = value
-        if (f1.apply(s1) > f2.apply(s2)) G1.apply(s1) * G2.apply(s2) else zero
-      ]
+    val naiveSampler = fancySampler.asNaiveStandardSampler
     
     println("fancy:" + fancySampler.estimate)
     println("naive:" + naiveSampler.estimate)

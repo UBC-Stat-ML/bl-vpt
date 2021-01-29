@@ -31,7 +31,7 @@ class StandardImportanceSampler<T> extends ImportanceSampler {
     return result
   }
   
-  def static <T1,T2> StandardImportanceSampler<Pair<T1,T2>> naiveProductSampler(
+  def static <T1,T2> StandardImportanceSampler<Pair<T1,T2>> productSampler(
     Iterable<T1> samples1, (T1)=>Double weightFunction1,
     Iterable<T2> samples2, (T2)=>Double weightFunction2,
     (Pair<T1,T2>)=>DenseMatrix function) {

@@ -14,6 +14,7 @@ import xlinear.MatrixOperations
 import java.util.ArrayList
 import blang.inits.Implementations
 import blang.runtime.internals.objectgraph.SkipDependency
+import xlinear.AutoDiff
 
 /**
  * One point in a sequence of distributions from a tractable one to 
@@ -45,8 +46,14 @@ abstract class Interpolation implements Differentiable {
 
   // APIs used by the PT sampler
   public val Map<String,RealVar> variables
+  def double logDensity(double beta) {
+    apply(variationalInputs(0, beta)).value
+  }
+  def DenseMatrix gradient(double beta) {
+    AutoDiff.gradient(parameters, this) 
+  }
   def double logDensity(AnnealingParameter beta) {
-    apply(variationalInputs(0, beta.doubleValue)).value
+    logDensity(beta.doubleValue)
   }
   def void sample(Random random) {
     sample(random, variationalInputs(0, 0.0))
@@ -54,7 +61,7 @@ abstract class Interpolation implements Differentiable {
   
   // APIs used by autodiff
   override DerivativeStructure apply(List<DerivativeStructure> it) {
-    logDensity
+    logDensity(it)
   }
   
   // utilities

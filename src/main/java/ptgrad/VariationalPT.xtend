@@ -8,11 +8,20 @@ import blang.engines.internals.factories.PT
 import xlinear.DenseMatrix
 import blang.engines.ParallelTempering
 import xlinear.AutoDiff
+import java.util.HashMap
+import ptgrad.is.Sample
+import java.util.List
+import java.util.Map
+import java.util.LinkedHashMap
+import java.util.ArrayList
+import ptgrad.is.FixedSample
+
+import static java.lang.Math.*
 
 class VariationalPT implements PosteriorInferenceEngine {
   
   @Arg 
-  val PT pt = new PT
+  public val PT pt = new PT
   
   var DenseMatrix parameters = null
   
@@ -25,20 +34,54 @@ class VariationalPT implements PosteriorInferenceEngine {
     pt.performInference
     
     // quick check
-    for (var double phi = -3; phi < 3; phi += 0.1) {
-      parameters.set(0, phi)
-      iterate(100)
-      println("" + phi + "\t" + inefficiency + " ")
+//    for (var double phi = -3; phi < 3; phi += 0.1) {
+//      parameters.set(0, phi)
+//      iterate(100)
+//      println("" + phi + "\t" + inefficiency + " ")
+//    }
+  }
+  
+  def betas() {
+    return (0 ..< pt.nChains).map[pt.states.get(it).exponent].toList
+  }
+  
+  def initSampleLists() {
+    val samples = new LinkedHashMap<Double, List<Sample>>
+    for (i : 0 ..< pt.nChains) {
+      val beta = pt.states.get(i).exponent
+      samples.put(beta, new ArrayList<Sample>)
+    }
+    return samples
+  }
+  
+  def void record(Map<Double, List<Sample>> samples) {
+    val allBetas = betas()
+    for (i : 0 ..< pt.nChains) {
+      val beta = pt.states.get(i).exponent
+      val interpolation = model(i)
+      val currentBetas = new ArrayList<Double> => [
+        add(allBetas.get(i))
+        if (i - 1 >= 0) 
+          add(allBetas.get(i - 1))
+        if (i + 1 < allBetas.size)
+          add(allBetas.get(i + 1))
+      ]
+      val sample = new FixedSample(interpolation, currentBetas)
+      samples.get(beta).add(sample)
     }
   }
   
-  def void iterate(int nScans) {
+  def Map<Double, List<Sample>> iterate(int nScans) {
+    var Map<Double, List<Sample>> samples = initSampleLists()
     val it = pt
     swapAcceptPrs = ParallelTempering::initStats(nChains)
+    initSampleLists()
     for (i : 0 ..< nScans) {
       moveKernel(nPassesPerScan)
       swapKernel
+      samples.record
     }
+    return samples
   }
   
   def double inefficiency() {
