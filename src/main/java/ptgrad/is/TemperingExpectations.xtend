@@ -12,10 +12,11 @@ import static xlinear.MatrixOperations.*
 
 import static extension xlinear.MatrixExtensions.*
 import blang.runtime.Runner
+import blang.inits.experiments.tabwriters.TabularWriter
+import org.eclipse.xtend.lib.annotations.Data
 
-class Statistics {
+class TemperingExpectations {
   
-
   def static ImportanceSampler expectedGradient(List<Sample> samples, double expectationBeta, double scoreBeta) {
     return new StandardImportanceSampler(
       samples, 
@@ -35,11 +36,11 @@ class Statistics {
    * log(acceptRatio) 
    *             = logD_1(x_2) + logD_2(x_1) - logD_1(x_1) - logD_2(x_2)
    *             = {logD_2(x_1) - logD_1(x_1)} - {logD_2(x_2) - logD_1(x_2)}
-   *             = delta(beta_1, beta_2, x_1) - delta(beta_1, beta_2, x_2)
+   *             = delta(beta1, beta2, x_1) - delta(beta1, beta2, x_2)
    * 
    * Hence 1[ acceptRatio <= 1 ] = 1[ log(acceptRatio) <= 0 ]
-   *                             = 1[ delta(beta_1, beta_2, x_1)  <= delta(beta_1, beta_2, x_2) ]
-   *                             = 1[ -delta(beta_1, beta_2, x_1) >= -delta(beta_1, beta_2, x_2) ]
+   *                             = 1[ delta(beta1, beta2, x_1)  <= delta(beta1, beta2, x_2) ]
+   *                             = 1[ -delta(beta1, beta2, x_1) >= -delta(beta1, beta2, x_2) ]
    * 
    * which is cast into DiagonalHalfSpaceImportanceSampler as 
    * 
@@ -48,25 +49,25 @@ class Statistics {
    * 
    * Next, 
    * 
-   * acceptRatio = exp(delta(beta_1, beta_2, x_1)) exp( - delta(beta_1, beta_2, x_2) )
+   * acceptRatio = exp(delta(beta2, beta1, x_1)) exp( - delta(beta2, beta1, x_2) )
    * 
    * which is case into DiagonalHalfSpaceImportanceSampler as
    * 
    *             = G1_i                            G2_j
    */
-  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedUntruncatedRatio(List<Sample> samples1, List<Sample> samples2, double beta1, double beta2) {
+  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedUntruncatedRatio(ChainPair it) { 
     return new DiagonalHalfSpaceImportanceSampler(
-      samples1, [-delta(beta1, beta2)], [exp( delta(beta1, beta2)).toMtx], [weight],
-      samples2, [-delta(beta1, beta2)], [exp(-delta(beta1, beta2)).toMtx], [weight],
+      samples1, [s | -delta(s, beta1, beta2)], [s | exp( delta(s, beta1, beta2)).toMtx], [weight],
+      samples2, [s | -delta(s, beta1, beta2)], [s | exp(-delta(s, beta1, beta2)).toMtx], [weight],
       false
     )
   }
   
-  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> _expectedTruncatedGradient(List<Sample> samples1, List<Sample> samples2, double beta1, double beta2) {
+  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> _expectedTruncatedGradient(ChainPair it) {
     val one = ones(1)
     return new DiagonalHalfSpaceImportanceSampler(
-      samples1, [-delta(beta1, beta2)], [gradient(beta1)], [weight],
-      samples2, [-delta(beta1, beta2)], [one], [weight],
+      samples1, [s | -delta(s, beta1, beta2)], [s | s.gradient(beta1)], [weight],
+      samples2, [s | -delta(s, beta1, beta2)], [one], [weight],
       false
     )
   }
@@ -77,11 +78,11 @@ class Statistics {
    * Similar strategy as expectedTruncatedRatio but with 
    * G1_i = G2_j = 1
    */
-  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> probabilityOfTruncation(List<Sample> samples1, List<Sample> samples2, double beta1, double beta2) {
+  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> probabilityOfTruncation(ChainPair it) {
     val one = ones(1)
     return new DiagonalHalfSpaceImportanceSampler(
-      samples1, [delta(beta1, beta2)], [one], [weight],
-      samples2, [delta(beta1, beta2)], [one], [weight],
+      samples1, [s | delta(s, beta1, beta2)], [one], [weight],
+      samples2, [s | delta(s, beta1, beta2)], [one], [weight],
       true
     )
   }
@@ -98,7 +99,4 @@ class Statistics {
     item.set(0, x)
     return MatrixOperations::denseCopy(item)
   }
-  
-
-  
 }

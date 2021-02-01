@@ -30,6 +30,11 @@ class StatisticsMain extends Experiment {
       val fancyStats = new SummaryStatistics
       val naiveStats = new SummaryStatistics
       
+      val fancyVarEst = new SummaryStatistics
+      val naiveVarEst = new SummaryStatistics
+      
+      val fancySingleVarEst = new SummaryStatistics
+      
       for (mc : 0 ..< 100) {
         val samples = vpt.iterate(nIters)
         val samples1 = samples.get(beta1)
@@ -40,14 +45,22 @@ class StatisticsMain extends Experiment {
 //        val expectedAccept = expectedUntruncatedRatio.estimate + probabilityOfTruncation.estimate
 //        fancyStats.addValue(expectedAccept.get(0))
 
-        val expectedGradient = Statistics::_expectedTruncatedGradient(samples1, samples2, beta1, beta2)
+        val expectedGradient = TemperingExpectations::_expectedTruncatedGradient(new ChainPair(beta1, beta2, samples1, samples2))
         fancyStats.addValue(expectedGradient.estimate.get(0))
+        fancySingleVarEst.addValue(expectedGradient.varianceEstimate.get(0))
+        var stdErr = expectedGradient.standardError.get(0)
+        fancyVarEst.addValue(stdErr*stdErr)
     
         //val naive = expectedUntruncatedRatio.asNaiveStandardSampler.estimate + probabilityOfTruncation.asNaiveStandardSampler.estimate
         naiveStats.addValue(expectedGradient.asNaiveStandardSampler.estimate.get(0))
+        stdErr = expectedGradient.asNaiveStandardSampler.standardError.get(0)
+        naiveVarEst.addValue(stdErr*stdErr)
       }
       
-      println("" + nIters + " " + fancyStats.variance + " " + naiveStats.variance)
+      println("" + nIters + " f-var=" + fancyStats.variance + " n-var=" + naiveStats.variance + " "
+          + "f-estvar=" + fancyVarEst.mean + " n-estvar=" + naiveVarEst.mean + " "
+          + " f-est=" + fancyStats.mean + " n-est=" + naiveStats.mean + " f-var-single-estimate=" + fancySingleVarEst.mean
+      )
       
     }
     

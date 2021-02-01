@@ -16,13 +16,17 @@ abstract class ImportanceSampler {
     return weightedSum(2, 0).get(0)
   }
   
-  def DenseMatrix estimate() {
-    return weightedSum(1, 1) / sumWeights
+  def DenseMatrix estimate(int functionPower) {
+    return weightedSum(1, functionPower) / sumWeights
   }
+  
+  def DenseMatrix estimate() { estimate(1) }
   
   def DenseMatrix standardError() {
     val estimate = estimate
-    val varianceEstimate = weightedSum(2, 2) - 2 * estimate * weightedSum(2, 1) + estimate * sumSqWeights
+
+    // See Owen, IS chapter, p.9, https://statweb.stanford.edu/~owen/mc/Ch-var-is.pdf
+    val varianceEstimate = (weightedSum(2, 2) - 2.0 * estimate * weightedSum(2, 1) + estimate * estimate * sumSqWeights) / Math::pow(sumWeights, 2)
     val result = dense(varianceEstimate.nEntries)
     for (i : 0 ..< result.nEntries)
       result.set(i, Math::sqrt(varianceEstimate.get(i)))

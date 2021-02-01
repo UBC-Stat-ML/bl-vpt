@@ -23,7 +23,7 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg 
   public val PT pt = new PT
   
-  var DenseMatrix parameters = null
+  public var DenseMatrix parameters = null
   
   override check(GraphAnalysis analysis) {
     pt.check(analysis)

@@ -150,6 +150,34 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     )
   }
   
+  
+  private def static <T> double ess(Iterable<T> samples, (T)=> DenseMatrix g, (T)=>Double weightFunction) {
+    val is = new StandardImportanceSampler(samples, g, weightFunction)
+    return is.ess
+  }
+    
+  override ess() { 
+    ess(samples1, G1, weightFunction1) + ess(samples2, G2, weightFunction2)
+  }
+  
+  def DenseMatrix varianceEstimate() {
+    val meanSq = estimate => [editInPlace[_, __, v|v*v]]
+    return estimate(2) - meanSq
+  }
+  
+  override standardError() {
+    // based on the heuristic formula var/(ess sample1 + ess sample2)
+    // since the default one assumes a sample size of O(n^2) which 
+    // is overoptimistic given the strong dependencies involved
+    // NB: based on quick simulation in 
+    val varEstimate = varianceEstimate
+    val ess = ess()
+    val result = dense(varianceEstimate.nEntries)
+    for (i : 0 ..< varEstimate.nEntries)
+      result.set(i, Math::sqrt(varEstimate.get(i)/ess))
+    return result
+  }
+  
   def static void main(String [] args) {
     
     val samples1 = (3 .. 5).map[it as double as Double].toList => [Collections::shuffle(it) ]
