@@ -9,6 +9,8 @@ import blang.System;
 import blang.engines.internals.factories.PT.MonitoringOutput
 import blang.engines.internals.factories.PT.Column
 
+import static extension xlinear.MatrixExtensions.*
+
 abstract class Optimizer {
   
   public val Objective obj
@@ -27,7 +29,9 @@ abstract class Optimizer {
     for (iter : 0 ..< maxIters) {
       results.getTabularWriter("optimization").printAndWrite(
         "iter" -> iter,
-        "objective" -> obj.evaluate
+        "objective" -> obj.evaluate,
+        "point" -> obj.currentPoint.vectorToArray.join(" "), 
+        "gradient" -> obj.gradient.vectorToArray.join(" ")
       )
       obj.moveTo(iterate(iter))
     }

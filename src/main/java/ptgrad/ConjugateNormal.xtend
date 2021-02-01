@@ -20,6 +20,8 @@ class ConjugateNormal extends Interpolation {
   val static String _param_mu = "param_mu"
   val static String _variable_x = "x"
   
+  // conjugacy leads to optimal phi of 1.5, which gives zero rejection
+  
   val observation = 3.0
   val posteriorVariance = 0.5
   

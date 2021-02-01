@@ -15,12 +15,11 @@ class StatisticsMain extends Experiment {
       "--model.interpolation", ConjugateNormal.canonicalName,
       "--engine", "ptgrad.VariationalPT",
       "--engine.pt.nPassesPerScan", "20",
-      "--engine.pt.nChains", "8" 
+      "--engine.pt.nChains", "8",
+      "--engine.optimize", "false"
     )
     runner.run()
     val vpt = runner.engine as VariationalPT
-    
-    
     
     // next check: rejection rates correctly estimated
     val betas = vpt.betas
@@ -35,15 +34,21 @@ class StatisticsMain extends Experiment {
       
       val fancySingleVarEst = new SummaryStatistics
       
+      val acceptStats = new SummaryStatistics
+      val acceptStatst1 = new SummaryStatistics
+      val acceptStatst2 = new SummaryStatistics
+      
       for (mc : 0 ..< 100) {
         val samples = vpt.iterate(nIters)
         val samples1 = samples.get(beta1)
         val samples2 = samples.get(beta2)
         
-//        val expectedUntruncatedRatio = Statistics::expectedUntruncatedRatio(samples1, samples2, beta1, beta2)
-//        val probabilityOfTruncation = Statistics::probabilityOfTruncation(samples1, samples2, beta1, beta2)
-//        val expectedAccept = expectedUntruncatedRatio.estimate + probabilityOfTruncation.estimate
-//        fancyStats.addValue(expectedAccept.get(0))
+        val expectedUntruncatedRatio = TemperingExpectations::expectedUntruncatedRatio(new ChainPair(#[beta1, beta2], #[samples1, samples2]))
+        val probabilityOfTruncation = TemperingExpectations::probabilityOfTruncation(new ChainPair(#[beta1, beta2], #[samples1, samples2]))
+        val expectedAccept = expectedUntruncatedRatio.asNaiveStandardSampler.estimate + probabilityOfTruncation.asNaiveStandardSampler.estimate
+        acceptStats.addValue(expectedAccept.get(0))
+        acceptStatst1.addValue(expectedUntruncatedRatio.estimate.get(0))
+        acceptStatst2.addValue(probabilityOfTruncation.estimate.get(0))
 
         val expectedGradient = TemperingExpectations::expectedTruncatedGradient(new ChainPair(#[beta1, beta2], #[samples1, samples2]), 0)
         fancyStats.addValue(expectedGradient.estimate.get(0))
@@ -61,6 +66,10 @@ class StatisticsMain extends Experiment {
           + "f-estvar=" + fancyVarEst.mean + " n-estvar=" + naiveVarEst.mean + " "
           + " f-est=" + fancyStats.mean + " n-est=" + naiveStats.mean + " f-var-single-estimate=" + fancySingleVarEst.mean
       )
+      
+      println("->" + acceptStats.mean)
+      println("->" + acceptStatst1.mean)
+      println("->" + acceptStatst2.mean)
       
     }
     

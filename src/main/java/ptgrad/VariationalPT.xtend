@@ -17,11 +17,28 @@ import java.util.ArrayList
 import ptgrad.is.FixedSample
 
 import static java.lang.Math.*
+import opt.SGD
+import blang.inits.DefaultValue
+import ptgrad.TemperingObjective.ObjectiveType
+import ptgrad.TemperingObjective.Rejection
+import briefj.BriefLog
 
 class VariationalPT implements PosteriorInferenceEngine {
   
   @Arg 
   public val PT pt = new PT
+  
+  @Arg       @DefaultValue("true")
+  public boolean optimize = true
+  
+  @Arg                @DefaultValue("0.5")
+  public double miniBurnInFraction = 0.5
+  
+  @Arg            @DefaultValue("100")
+  public int nScansPerGradient = 100
+    
+  @Arg                  @DefaultValue("Rejection")
+  public ObjectiveType objective = new Rejection
   
   public var DenseMatrix parameters = null
   
@@ -33,11 +50,20 @@ class VariationalPT implements PosteriorInferenceEngine {
     // start with an adaptive pass to learn good starting schedule
     pt.performInference
     
-    // quick check
+    System.out.println("Something weird...")
+    BriefLog::warnOnce("remove!") 
+    parameters.set(0, 1.5) 
+    if (optimize) {
+      val objective = new TemperingObjective(this)  
+      val sgd = new SGD(objective)
+      sgd.optimize
+    }
+    
+//    // quick check
 //    for (var double phi = -3; phi < 3; phi += 0.1) {
 //      parameters.set(0, phi)
-//      iterate(100)
-//      println("" + phi + "\t" + inefficiency + " ")
+//      iterate(1000)
+//      println("" + phi + "\t" + inefficiency + " " + "\t" + sumRejections)
 //    }
   }
   
@@ -85,7 +111,15 @@ class VariationalPT implements PosteriorInferenceEngine {
   }
   
   def double inefficiency() {
-    pt.swapAcceptPrs.map[mean as double].filter[!Double.isNaN(it)].map[s|(1.0-s)/s].reduce[a,b|a+b]
+    objective[s|(1.0-s)/s]
+  }
+  
+  def double sumRejections() {
+    objective[s|1.0-s]
+  }
+  
+  def double objective((Double)=>Double acceptToTerm) {
+    pt.swapAcceptPrs.map[mean as double].filter[!Double.isNaN(it)].map(acceptToTerm).reduce[a,b|a+b]
   }
   
   override setSampledModel(SampledModel model) {

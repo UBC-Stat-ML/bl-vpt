@@ -14,10 +14,16 @@ import ptgrad.is.ChainPair
 import blang.inits.experiments.tabwriters.TabularWriter
 import static ptgrad.is.TemperingExpectations.*
 import java.util.ArrayList
+import blang.inits.Implementations
+import blang.inits.DefaultValue
 
 class TemperingObjective implements Objective {
-    
-  public VariationalPT vpt = null
+  val VariationalPT vpt 
+  
+  new(VariationalPT vpt) { 
+    this.vpt = vpt
+    moveTo(vpt.parameters.copy) // force initial recompute
+  }
   
   var double currentPoint
   var DenseMatrix currentGradient
@@ -25,23 +31,12 @@ class TemperingObjective implements Objective {
   override moveTo(DenseMatrix updatedParameter) {
     vpt.parameters.setTo(updatedParameter)
     // reset statistics
-    val pointGradientPair = estimate(null)
+    val pointGradientPair = estimate()
     currentPoint = pointGradientPair.key
     currentGradient = pointGradientPair.value
-    
   }
   
-  static class EstimationSettings {
-    @Arg
-    public double miniBurnInFraction = 0.5
-  
-    @Arg
-    public int nScansPerGradient = 50
-    
-    @Arg
-    public ObjectiveType objective
-  }
-  
+  @Implementations(Rejection)
   static interface ObjectiveType {
     def Pair<Double,DenseMatrix> compute(ChainPair p)
   }
@@ -72,11 +67,19 @@ class TemperingObjective implements Objective {
     }
     
   }
+  
+  static class SKL implements ObjectiveType {
     
-  def Pair<Double,DenseMatrix> estimate(EstimationSettings settings) {
+    override compute(ChainPair p) {
+      throw new UnsupportedOperationException("TODO: auto-generated method stub")
+    }
+    
+  }
+    
+  def Pair<Double,DenseMatrix> estimate() {
     
     // burn-in a bit?
-    val nBurn = (settings.nScansPerGradient * settings.miniBurnInFraction) as int
+    val nBurn = (vpt.nScansPerGradient * vpt.miniBurnInFraction) as int
     val it = vpt.pt
     for (i : 0 ..< nBurn) {
       moveKernel(nPassesPerScan)
@@ -87,7 +90,7 @@ class TemperingObjective implements Objective {
     val samples = vpt.initSampleLists
     
     // record samples 
-    val nSamples = settings.nScansPerGradient - nBurn
+    val nSamples = vpt.nScansPerGradient - nBurn
     for (i : 0 ..< nSamples) {
       moveKernel(nPassesPerScan)
       swapKernel
@@ -102,7 +105,7 @@ class TemperingObjective implements Objective {
       val beta0 = betas.get(c)
       val beta1 = betas.get(c + 1)
       val pair = new ChainPair(#[beta0, beta1], #[samples.get(beta0), samples.get(beta1)])
-      val term = settings.objective.compute(pair)
+      val term = vpt.objective.compute(pair)
       objectiveSum += term.key
       gradientSum += term.value
     }

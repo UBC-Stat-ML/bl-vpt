@@ -49,7 +49,7 @@ class TemperingExpectations {
    * 
    * Next, 
    * 
-   * acceptRatio = exp(delta(beta2, beta1, x_1)) exp( - delta(beta2, beta1, x_2) )
+   * acceptRatio = exp(delta(beta1, beta2, x_1)) exp( - delta(beta1, beta2, x_2) )
    * 
    * which is case into DiagonalHalfSpaceImportanceSampler as
    * 

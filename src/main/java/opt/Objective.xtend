@@ -3,7 +3,7 @@ package opt
 import xlinear.DenseMatrix
 
 /**
- * Assume the objective function is of the form
+ * By default, minimization is considered
  */
 interface Objective {
   def void moveTo(DenseMatrix updatedParameter)
