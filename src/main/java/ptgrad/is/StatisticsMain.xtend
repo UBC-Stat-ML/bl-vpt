@@ -45,7 +45,7 @@ class StatisticsMain extends Experiment {
 //        val expectedAccept = expectedUntruncatedRatio.estimate + probabilityOfTruncation.estimate
 //        fancyStats.addValue(expectedAccept.get(0))
 
-        val expectedGradient = TemperingExpectations::_expectedTruncatedGradient(new ChainPair(beta1, beta2, samples1, samples2))
+        val expectedGradient = TemperingExpectations::expectedTruncatedGradient(new ChainPair(#[beta1, beta2], #[samples1, samples2]), 0)
         fancyStats.addValue(expectedGradient.estimate.get(0))
         fancySingleVarEst.addValue(expectedGradient.varianceEstimate.get(0))
         var stdErr = expectedGradient.standardError.get(0)

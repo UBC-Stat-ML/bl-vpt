@@ -25,8 +25,8 @@ class TemperingExpectations {
     ) 
   }
   
-  def static double delta(Sample s, double beta1, double beta2) {
-    return s.logDensity(beta2) - s.logDensity(beta1)
+  def static double delta(Sample s, List<Double> betas) {
+    return s.logDensity(betas.get(1)) - s.logDensity(betas.get(0))
   }
   
   /**
@@ -57,17 +57,22 @@ class TemperingExpectations {
    */
   def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedUntruncatedRatio(ChainPair it) { 
     return new DiagonalHalfSpaceImportanceSampler(
-      samples1, [s | -delta(s, beta1, beta2)], [s | exp( delta(s, beta1, beta2)).toMtx], [weight],
-      samples2, [s | -delta(s, beta1, beta2)], [s | exp(-delta(s, beta1, beta2)).toMtx], [weight],
+      samples.get(0), [s | -delta(s, betas)], [s | exp( delta(s, betas)).toMtx], [weight],
+      samples.get(1), [s | -delta(s, betas)], [s | exp(-delta(s, betas)).toMtx], [weight],
       false
     )
   }
   
-  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> _expectedTruncatedGradient(ChainPair it) {
+  /**
+   * 
+   */
+  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedTruncatedGradient(ChainPair it, int chainIndex) {
     val one = ones(1)
+    val first  = if (chainIndex === 0) [Sample s | s.gradient(betas.get(chainIndex))] else [one]
+    val second = if (chainIndex === 0) [one] else [Sample s | s.gradient(betas.get(chainIndex))]
     return new DiagonalHalfSpaceImportanceSampler(
-      samples1, [s | -delta(s, beta1, beta2)], [s | s.gradient(beta1)], [weight],
-      samples2, [s | -delta(s, beta1, beta2)], [one], [weight],
+      samples.get(0), [s | -delta(s, betas)], first, [weight],
+      samples.get(1), [s | -delta(s, betas)], second, [weight],
       false
     )
   }
@@ -81,8 +86,8 @@ class TemperingExpectations {
   def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> probabilityOfTruncation(ChainPair it) {
     val one = ones(1)
     return new DiagonalHalfSpaceImportanceSampler(
-      samples1, [s | delta(s, beta1, beta2)], [one], [weight],
-      samples2, [s | delta(s, beta1, beta2)], [one], [weight],
+      samples.get(0), [s | delta(s, betas)], [one], [weight],
+      samples.get(1), [s | delta(s, betas)], [one], [weight],
       true
     )
   }

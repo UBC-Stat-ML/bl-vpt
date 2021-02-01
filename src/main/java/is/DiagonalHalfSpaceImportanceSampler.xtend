@@ -169,7 +169,7 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     // based on the heuristic formula var/(ess sample1 + ess sample2)
     // since the default one assumes a sample size of O(n^2) which 
     // is overoptimistic given the strong dependencies involved
-    // NB: based on quick simulation in 
+    // NB: based on quick simulation in a1e58bea252dde26ba88d31b8b6ce39fe63996e8
     val varEstimate = varianceEstimate
     val ess = ess()
     val result = dense(varianceEstimate.nEntries)
