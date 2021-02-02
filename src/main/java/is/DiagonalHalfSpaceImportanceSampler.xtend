@@ -199,18 +199,18 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     
     val naiveSampler = fancySampler.asNaiveStandardSampler
     
-    println("fancy:" + fancySampler.estimate)
-    println("naive:" + naiveSampler.estimate)
+    println("fancy:" + fancySampler.estimate.get(0))
+    println("naive:" + naiveSampler.estimate.get(0))
     
     for (j : 1 .. 2)
       for (i : 0 .. 3) {
       println("=== " + j + " " + i)
-      println("fancy:" + fancySampler.weightedSum(j, i))
+      println("fancy:" + fancySampler.weightedSum(j, i).get(0))
       
       
       
       
-      println("naive:" + naiveSampler.weightedSum(j, i))
+      println("naive:" + naiveSampler.weightedSum(j, i).get(0))
     }
   }
 }
