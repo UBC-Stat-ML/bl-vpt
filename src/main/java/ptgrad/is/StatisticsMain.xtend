@@ -25,8 +25,8 @@ class StatisticsMain extends Experiment {
     
     // next check: rejection rates correctly estimated
     val betas = vpt.betas
-    val beta1 = betas.get(0)
-    val beta2 = betas.get(1)
+    val beta1 = betas.get(1)
+    val beta2 = betas.get(2)
     for (nIters : (1 .. 3).map[Math::pow(10, it) as int]) {
       val fancyStats = new SummaryStatistics
       val naiveStats = new SummaryStatistics
