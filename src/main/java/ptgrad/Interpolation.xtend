@@ -73,7 +73,7 @@ abstract class Interpolation  {
   def List<DerivativeStructure> variationalInputs(int order, DerivativeStructure beta) {
     val List<DerivativeStructure> inputs = new ArrayList(p + 1)
     for (i : 0 ..< p) 
-      inputs.add(new DerivativeStructure(parameters.nEntries, order, parameters.get(i)))
+      inputs.add(new DerivativeStructure(parameters.nEntries, order, i, parameters.get(i)))
     inputs.add(beta)
     return inputs
   }
