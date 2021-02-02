@@ -50,9 +50,9 @@ class VariationalPT implements PosteriorInferenceEngine {
     // start with an adaptive pass to learn good starting schedule
     pt.performInference
     
-    System.out.println("Something weird...")
-    BriefLog::warnOnce("remove!") 
-    parameters.set(0, 1.5) 
+    //System.out.println("Something weird...")
+    //BriefLog::warnOnce("remove!") 
+    //parameters.set(0, 1.5) 
     if (optimize) {
       val objective = new TemperingObjective(this)  
       val sgd = new SGD(objective)

@@ -9,6 +9,9 @@ import static xlinear.MatrixOperations.*
 
 import static extension xlinear.MatrixExtensions.*
 import java.util.ArrayList
+import briefj.BriefIO
+import briefj.BriefLog
+import java.util.TreeMap
 
 /**
    * 
@@ -47,6 +50,7 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
   }
   
   override weightedSum(int weightPower, int functionPower) {
+    
     var Pair<Integer,Integer> dims = 1 -> 1
     
     if (functionPower === 0) {
@@ -56,19 +60,23 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
       return denseCopy(#[result])
     }
     
-    val sorted = new TreeSet<CumulativeSum<T2>>()
-    sorted.addAll(samples2.map[new CumulativeSum<T2>(f2.apply(it), it)])
+    val sorted = new TreeMap<CumulativeSum,CumulativeSum>()
+    for (sample2 : samples2) {
+      val function = G2.apply(sample2)
+      dims = updateDim(dims, 1, function.nCols) 
+      val weight = weightFunction2.apply(sample2)
+      val current = pow(function, functionPower) * Math::pow(weight, weightPower)
+      val key = new CumulativeSum(f2.apply(sample2), current)
+      if (sorted.containsKey(key)) sorted.get(key).entry += current
+      else sorted.put(key, key)
+    }
     
     var DenseMatrix sum = null
-    for (it : sorted) {
-      val function = G2.apply(key)
-      dims = updateDim(dims, 1, function.nCols) 
-      val weight = weightFunction2.apply(key)
-      val current = pow(function, functionPower) * Math::pow(weight, weightPower)
+    for (it : sorted.keySet) { 
       if (sum === null)
-        sum = current
+        sum = entry
       else
-        sum += current
+        sum += entry
       cumulativeSum = sum.copy
     }
     
@@ -76,9 +84,9 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     for (it : samples1) {
       val cumsum = 
         if (strict)
-          sorted.lower(new CumulativeSum<T2>(f1.apply(it), null))
+          sorted.lowerKey(new CumulativeSum(f1.apply(it), null))
         else 
-          sorted.floor(new CumulativeSum<T2>(f1.apply(it), null))
+          sorted.floorKey(new CumulativeSum(f1.apply(it), null))
       if (cumsum === null) {
         // nothing to do, this first group of terms is killed by the indicator
       } else {
@@ -106,16 +114,17 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     return nRows -> nCols
   }
   
-  private static class CumulativeSum<T2> implements Comparable<CumulativeSum<T2>> {
+  private static class CumulativeSum implements Comparable<CumulativeSum> {
     val Double f2
-    val T2 key
+
     var DenseMatrix cumulativeSum
-    new (double f2, T2 key) {
+    val DenseMatrix entry
+    new (double f2, DenseMatrix entry) {
       this.f2 = f2
-      this.key = key
+      this.entry = entry
     }
     
-    override compareTo(CumulativeSum<T2> another) {
+    override compareTo(CumulativeSum another) {
       this.f2.compareTo(another.f2)
     }
   }

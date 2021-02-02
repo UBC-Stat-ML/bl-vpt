@@ -6,6 +6,8 @@ import ptgrad.ConjugateNormal
 import ptgrad.Variational
 import ptgrad.VariationalPT
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics
+import is.DiagonalHalfSpaceImportanceSampler
+import bayonet.math.NumericalUtils
 
 class StatisticsMain extends Experiment {
   
@@ -23,8 +25,8 @@ class StatisticsMain extends Experiment {
     
     // next check: rejection rates correctly estimated
     val betas = vpt.betas
-    val beta1 = betas.get(betas.size - 2)
-    val beta2 = betas.get(betas.size - 1)
+    val beta1 = betas.get(0)
+    val beta2 = betas.get(1)
     for (nIters : (1 .. 3).map[Math::pow(10, it) as int]) {
       val fancyStats = new SummaryStatistics
       val naiveStats = new SummaryStatistics
@@ -45,12 +47,19 @@ class StatisticsMain extends Experiment {
         
         val expectedUntruncatedRatio = TemperingExpectations::expectedUntruncatedRatio(new ChainPair(#[beta1, beta2], #[samples1, samples2]))
         val probabilityOfTruncation = TemperingExpectations::probabilityOfTruncation(new ChainPair(#[beta1, beta2], #[samples1, samples2]))
-        val expectedAccept = expectedUntruncatedRatio.asNaiveStandardSampler.estimate + probabilityOfTruncation.asNaiveStandardSampler.estimate
+        
+        check(expectedUntruncatedRatio)
+        check(probabilityOfTruncation)
+        
+        val expectedAccept = expectedUntruncatedRatio.estimate + probabilityOfTruncation.estimate
         acceptStats.addValue(expectedAccept.get(0))
         acceptStatst1.addValue(expectedUntruncatedRatio.estimate.get(0))
         acceptStatst2.addValue(probabilityOfTruncation.estimate.get(0))
 
         val expectedGradient = TemperingExpectations::expectedTruncatedGradient(new ChainPair(#[beta1, beta2], #[samples1, samples2]), 0)
+        
+        check(expectedGradient)
+        
         fancyStats.addValue(expectedGradient.estimate.get(0))
         fancySingleVarEst.addValue(expectedGradient.varianceEstimate.get(0))
         var stdErr = expectedGradient.standardError.get(0)
@@ -73,8 +82,6 @@ class StatisticsMain extends Experiment {
       
     }
     
-    
-    
     //probably uses other iters
     //println("Basic estimates")
     //val basicSwapAcceptPr = vpt.pt.swapAcceptPrs.map[mean].toList
@@ -83,15 +90,24 @@ class StatisticsMain extends Experiment {
     
     
     println(betas)
+
+  }
+  
+  def static void check(DiagonalHalfSpaceImportanceSampler<?,?> s) {
+    
+    val fw = s.weightedSum(1, 1).get(0)
+    val nw = s.asCosltyStandardSampler.weightedSum(1, 1).get(0)
+    
+    if (!NumericalUtils::isClose(fw, nw, 1e-6)) {
+      s.weightedSum(1, 1)
+      s.asCosltyStandardSampler.weightedSum(1, 1).get(0)
+      System.err.println("brok")
+    }
     
     
-    
-    
-    
-    
-    
-    
-    
+    val fancy = s.estimate.get(0)
+    val coslty = s.asCosltyStandardSampler.estimate.get(0)
+    NumericalUtils::checkIsClose(fancy, coslty)
   }
   
   def static void main(String [] args) {

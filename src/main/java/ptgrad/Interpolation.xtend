@@ -21,7 +21,7 @@ import xlinear.AutoDiff
  * an intractable one.
  */
 @Implementations(ConjugateNormal)
-abstract class Interpolation implements Differentiable {
+abstract class Interpolation  {
   // variables need to be populated right away at construction time
   new (Map<String,RealVar> variables, Collection<String> parameterComponents) { 
     this.variables = variables
@@ -47,21 +47,17 @@ abstract class Interpolation implements Differentiable {
   // APIs used by the PT sampler
   public val Map<String,RealVar> variables
   def double logDensity(double beta) {
-    apply(variationalInputs(0, beta)).value
+    logDensity(variationalInputs(0, beta)).value
   }
   def DenseMatrix gradient(double beta) {
-    AutoDiff.gradient(parameters, this) 
+    val derivStruct = logDensity(variationalInputs(1, beta))
+    return AutoDiff::gradient(derivStruct)
   }
   def double logDensity(AnnealingParameter beta) {
     logDensity(beta.doubleValue)
   }
   def void sample(Random random) {
     sample(random, variationalInputs(0, 0.0))
-  }
-  
-  // APIs used by autodiff
-  override DerivativeStructure apply(List<DerivativeStructure> it) {
-    logDensity(it)
   }
   
   // utilities

@@ -8,7 +8,7 @@ import static extension xlinear.MatrixExtensions.*
 abstract class ImportanceSampler {
   def DenseMatrix weightedSum(int weightPower, int functionPower)
   
-  private def double sumWeights() { 
+  def double sumWeights() { 
     return weightedSum(1, 0).get(0)
   }
 
