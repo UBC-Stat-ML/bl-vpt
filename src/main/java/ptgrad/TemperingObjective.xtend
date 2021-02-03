@@ -17,6 +17,8 @@ import java.util.ArrayList
 import blang.inits.Implementations
 import blang.inits.DefaultValue
 
+
+
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
   
@@ -41,7 +43,7 @@ class TemperingObjective implements Objective {
     currentGradient = pointGradientPair.value
   }
   
-  @Implementations(Rejection)
+  @Implementations(Rejection, SKL)
   static interface ObjectiveType {
     def Pair<Double,DenseMatrix> compute(ChainPair p)
   }
@@ -79,11 +81,18 @@ class TemperingObjective implements Objective {
       val objectiveTerms = new ArrayList<Double>(2)
       val gradientTerms = new ArrayList<DenseMatrix>(2)
       
-//      for (i : 0 ..< 2) {
-//        val samples = p.samples.get(i)
-//        val beta = p.betas.get(i)
-//        val E_Delta = 
-//      }
+      for (i : 0 ..< 2) {
+        val samples = p.samples.get(i)
+        val beta = p.betas.get(i)
+        val expectedDelta = expectedDelta(samples, p.betas).estimate
+        objectiveTerms.add(expectedDelta.doubleValue)
+        
+        gradientTerms +=
+          expectedGradientTimesDelta(samples, beta, p.betas).estimate -
+          expectedGradient(samples, beta).estimate * expectedDelta +
+          expectedGradientDelta(samples, p.betas).estimate
+          
+      }
       
       return (objectiveTerms.get(1) - objectiveTerms.get(0)) -> (gradientTerms.get(1) - gradientTerms.get(0))
     }

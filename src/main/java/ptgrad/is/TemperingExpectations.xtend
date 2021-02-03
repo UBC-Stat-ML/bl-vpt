@@ -21,20 +21,40 @@ class TemperingExpectations {
     return new StandardImportanceSampler(
       samples, 
       [gradient(scoreBeta)],
-      [weight] // fixed weight here!
+      [weight]
     ) 
   }
   
   def static ImportanceSampler expectedGradientTimesDelta(List<Sample> samples, double expectationBeta, List<Double> betas) {
     return new StandardImportanceSampler(
       samples, 
-      [(gradient(betas.get(1)) - gradient(betas.get(0))) * logDensity(expectationBeta)],
-      [weight] // fixed weight here!
+      [delta(betas) * gradient(expectationBeta)],
+      [weight]
+    ) 
+  }
+  
+  def static ImportanceSampler expectedGradientDelta(List<Sample> samples, List<Double> betas) {
+    return new StandardImportanceSampler(
+      samples, 
+      [gradientDelta(betas)],
+      [weight] 
+    ) 
+  }
+  
+  def static ImportanceSampler expectedDelta(List<Sample> samples, List<Double> betas) {
+    return new StandardImportanceSampler(
+      samples, 
+      [delta(betas).toMtx],
+      [weight]
     ) 
   }
   
   def static double delta(Sample s, List<Double> betas) {
     return s.logDensity(betas.get(1)) - s.logDensity(betas.get(0))
+  }
+  
+  def static DenseMatrix gradientDelta(Sample s, List<Double> betas) {
+    return s.gradient(betas.get(1)) - s.gradient(betas.get(0))
   }
   
   /**
