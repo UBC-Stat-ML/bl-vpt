@@ -17,11 +17,19 @@ import org.eclipse.xtend.lib.annotations.Data
 
 class TemperingExpectations {
   
-  def static ImportanceSampler expectedGradient(List<Sample> samples, double expectationBeta, double scoreBeta) {
+  def static ImportanceSampler expectedGradient(List<Sample> samples, double scoreBeta) {
     return new StandardImportanceSampler(
       samples, 
       [gradient(scoreBeta)],
-      [logDensity(expectationBeta)]
+      [weight] // fixed weight here!
+    ) 
+  }
+  
+  def static ImportanceSampler expectedGradientTimesDelta(List<Sample> samples, double expectationBeta, List<Double> betas) {
+    return new StandardImportanceSampler(
+      samples, 
+      [(gradient(betas.get(1)) - gradient(betas.get(0))) * logDensity(expectationBeta)],
+      [weight] // fixed weight here!
     ) 
   }
   
@@ -71,8 +79,8 @@ class TemperingExpectations {
     val first  = if (chainIndex === 0) [Sample s | s.gradient(betas.get(chainIndex))] else [one]
     val second = if (chainIndex === 0) [one] else [Sample s | s.gradient(betas.get(chainIndex))]
     return new DiagonalHalfSpaceImportanceSampler(
-      samples.get(0), [s | -delta(s, betas)], first, [weight],
-      samples.get(1), [s | -delta(s, betas)], second, [weight],
+      samples.get(0), [s | delta(s, betas)], first, [weight], // fixed a sign here!
+      samples.get(1), [s | delta(s, betas)], second, [weight],
       false
     )
   }

@@ -53,10 +53,21 @@ class PTGradientTest implements ProbabilitySpace {
       Xs.set(i, Generators::normal(rand, mu(i), 1.0))
   }
   
+  def static double analyticRejectRate(double delta) { 1.0 - analyticAcceptRate(delta) }
+  def static double analyticRejectGradient(double delta) { -analyticAcceptGradient(delta) }
+  
+  def static double analyticAcceptRate(double delta) {
+    (2.0 * Phi(- sqrt(delta * delta / 2.0)))
+  }
+  
+  def static double analyticAcceptGradient(double delta) {
+    - exp(- delta * delta / 4.0) / sqrt(PI)
+  }
+  
   def static void main(String [] args) {
     val delta = 2.1
-    val analyticObjective = (2.0 * Phi(- sqrt(delta * delta / 2.0))) // from Atchade et al (this is an accept!)
-    val analyticGradient = - exp(- delta * delta / 4.0) / sqrt(PI)
+    val analyticObjective = analyticAcceptRate(delta) // from Atchade et al (this is an accept!)
+    val analyticGradient = analyticAcceptGradient(delta)
     new PTGradientTest(delta) => [
       
       

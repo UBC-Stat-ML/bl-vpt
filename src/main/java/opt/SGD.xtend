@@ -15,7 +15,7 @@ class SGD extends Optimizer {
   }
   
   def double rate(int i) {
-    return 0.01 // TODO: decrease
+    return 0.1 // TODO: decrease
   }
   
   def static void main(String [] args) {

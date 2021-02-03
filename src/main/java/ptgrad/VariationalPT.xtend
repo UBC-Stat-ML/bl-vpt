@@ -46,13 +46,18 @@ class VariationalPT implements PosteriorInferenceEngine {
     pt.check(analysis)
   }
   
+  
   override performInference() {
     // start with an adaptive pass to learn good starting schedule
+    //parameters.set(0, println(0.1)) 
+    
     pt.performInference
     
     //System.out.println("Something weird...")
     //BriefLog::warnOnce("remove!") 
-    //parameters.set(0, 1.5) 
+    
+    //parameters.set(0, 0.5)
+     
     if (optimize) {
       val objective = new TemperingObjective(this)  
       val sgd = new SGD(objective)
@@ -117,7 +122,7 @@ class VariationalPT implements PosteriorInferenceEngine {
   def double sumRejections() {
     objective[s|1.0-s]
   }
-  
+    
   def double objective((Double)=>Double acceptToTerm) {
     pt.swapAcceptPrs.map[mean as double].filter[!Double.isNaN(it)].map(acceptToTerm).reduce[a,b|a+b]
   }

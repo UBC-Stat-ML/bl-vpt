@@ -32,6 +32,11 @@ class TemperingObjective implements Objective {
     vpt.parameters.setTo(updatedParameter)
     // reset statistics
     val pointGradientPair = estimate()
+    
+//    println("a few replicates")
+//    for (i : 0 .. 2)
+//      println(" " + estimate())
+    
     currentPoint = pointGradientPair.key
     currentGradient = pointGradientPair.value
   }
@@ -57,7 +62,7 @@ class TemperingObjective implements Objective {
       val gradientTerms = new ArrayList<DenseMatrix>(2)
       for (i : 0 ..< 2) {
         val crossTerm = expectedTruncatedGradient(p, i).estimate                                           // E [ gradient_i x T ]
-        val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i), p.betas.get(i)).estimate // E_i [ gradient_i ]
+        val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate // E_i [ gradient_i ]
         val covar = crossTerm - probabilityOfTrunc * expectedGradient   // Covar[ gradient_i, T ]
         gradientTerms.add(covar)
       }
@@ -71,7 +76,16 @@ class TemperingObjective implements Objective {
   static class SKL implements ObjectiveType {
     
     override compute(ChainPair p) {
-      throw new UnsupportedOperationException("TODO: auto-generated method stub")
+      val objectiveTerms = new ArrayList<Double>(2)
+      val gradientTerms = new ArrayList<DenseMatrix>(2)
+      
+//      for (i : 0 ..< 2) {
+//        val samples = p.samples.get(i)
+//        val beta = p.betas.get(i)
+//        val E_Delta = 
+//      }
+      
+      return (objectiveTerms.get(1) - objectiveTerms.get(0)) -> (gradientTerms.get(1) - gradientTerms.get(0))
     }
     
   }
