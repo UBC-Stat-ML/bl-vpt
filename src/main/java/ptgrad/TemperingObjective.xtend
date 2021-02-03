@@ -16,8 +16,7 @@ import static ptgrad.is.TemperingExpectations.*
 import java.util.ArrayList
 import blang.inits.Implementations
 import blang.inits.DefaultValue
-
-
+import bayonet.math.NumericalUtils
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -34,16 +33,11 @@ class TemperingObjective implements Objective {
     vpt.parameters.setTo(updatedParameter)
     // reset statistics
     val pointGradientPair = estimate()
-    
-//    println("a few replicates")
-//    for (i : 0 .. 2)
-//      println(" " + estimate())
-    
     currentPoint = pointGradientPair.key
     currentGradient = pointGradientPair.value
   }
   
-  @Implementations(Rejection, SKL)
+  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef)
   static interface ObjectiveType {
     def Pair<Double,DenseMatrix> compute(ChainPair p)
   }
@@ -73,6 +67,27 @@ class TemperingObjective implements Objective {
       return reject -> gradient
     }
     
+  }
+  
+  static class Inef implements ObjectiveType {
+    val Rejection rej = new Rejection
+    
+    override compute(ChainPair p) {
+      val rejObj = rej.compute(p)
+      val r = rejObj.key
+      val s = 1.0 - r
+      return (r/s) -> (rejObj.value / Math::pow(s, 2))
+    }
+    
+  }
+  
+  static class SqrtHalfSKL implements ObjectiveType {
+    val SKL skl = new SKL
+    override compute(ChainPair p) {
+      val sklObj = skl.compute(p)
+      val obj = if (sklObj.key <= 0.0) 1e-6 else Math::sqrt(0.5 * sklObj.key)
+      return obj -> (sklObj.value / 4.0 / obj)
+    }
   }
   
   static class SKL implements ObjectiveType {

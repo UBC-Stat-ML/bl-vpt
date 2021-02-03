@@ -11,15 +11,41 @@ import bayonet.math.NumericalUtils
 import ptgrad.ToyNormal
 import ptgrad.TemperingObjective
 import ptanalysis.PTGradientTest
+import blang.inits.Arg
+import ptgrad.TemperingObjective.SKL
+import ptgrad.TemperingObjective.Rejection
+import blang.inits.DefaultValue
+import java.util.LinkedHashMap
+import briefj.BriefMaps
+import ptgrad.TemperingObjective.Inef
+import ptgrad.TemperingObjective.SqrtHalfSKL
 
 class ToyNormalTest extends Experiment {
+  
+  @Arg @DefaultValue("0.0")
+  double paramStart = 0.0
+  
+  @Arg     @DefaultValue("0.2")
+  double paramIncrement = 0.2
+  
+  @Arg @DefaultValue("2.0")
+  double   paramEnd = 2.0
+  
+  @Arg              @DefaultValue("ptgrad.ToyNormal")
+  String interpolationClassName = "ptgrad.ToyNormal"
+  
+  @Arg @DefaultValue("1000")
+  int      nOuterMC = 1000
+  
+  val static objectiveKey = "objective"
+  def static gradientKey(int i) { "gradient_" + i }
   
   override run() {
     val runner = Runner::create(results.resultsFolder,
       "--model", Variational.canonicalName, 
-      "--model.interpolation", ToyNormal.canonicalName,
+      "--model.interpolation", interpolationClassName,
       "--engine", "ptgrad.VariationalPT",
-      "--engine.pt.nPassesPerScan", "20",
+      "--engine.pt.nPassesPerScan", "3",
       "--engine.pt.nChains", "2",
       "--engine.optimize", "false"
     )
@@ -27,13 +53,36 @@ class ToyNormalTest extends Experiment {
     
     runner.run()
     
-    var delta = 0.1
-    vpt.parameters.set(0, delta)
+    for (var double param = paramStart; param < paramEnd; param += paramIncrement) 
+      for (type : #[new SKL, new Rejection, new Inef, new SqrtHalfSKL]) {
+        vpt.objective = type
+      
+        vpt.parameters.set(0, param)
+        val objective = new TemperingObjective(vpt)  
+        val stats = new LinkedHashMap<String,SummaryStatistics>
+        for (i : 0 ..< nOuterMC) {
+          val valueGradientPair = objective.estimate
+          BriefMaps::getOrPut(stats, objectiveKey, new SummaryStatistics).addValue(valueGradientPair.key)
+          val gradient = valueGradientPair.value
+          for (c : 0 ..< gradient.nEntries)
+            BriefMaps::getOrPut(stats, gradientKey(c), new SummaryStatistics).addValue(gradient.get(c))
+        }
+        for (entry : stats.entrySet) {
+          results.getTabularWriter("snrs").printAndWrite(
+            "parameter" -> param,
+            "type" -> type.class.simpleName,
+            "coord" -> entry.key,
+            "mean" -> entry.value.mean,
+            "SD" -> entry.value.standardDeviation,
+            "SNR" -> Math::abs(entry.value.mean/entry.value.standardDeviation)
+          )
+        }
+    }
     
-    val objective = new TemperingObjective(vpt)  
-    println("obj " + objective.evaluate + " " + PTGradientTest::analyticRejectRate(delta))
-    
-    println("grad " + objective.gradient.get(0) + " " + PTGradientTest::analyticRejectGradient(delta))
+//    val objective = new TemperingObjective(vpt)  
+//    println("obj " + objective.evaluate + " " + PTGradientTest::analyticRejectRate(delta))
+//    
+//    println("grad " + objective.gradient.get(0) + " " + PTGradientTest::analyticRejectGradient(delta))
     
 
   }
