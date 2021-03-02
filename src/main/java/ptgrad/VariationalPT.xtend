@@ -22,6 +22,7 @@ import blang.inits.DefaultValue
 import ptgrad.TemperingObjective.ObjectiveType
 import ptgrad.TemperingObjective.Rejection
 import briefj.BriefLog
+import opt.Optimizer
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -40,6 +41,9 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg                  @DefaultValue("Rejection")
   public ObjectiveType objective = new Rejection
   
+  @Arg              @DefaultValue("SGD")
+  public Optimizer optimizer = new SGD 
+  
   public var DenseMatrix parameters = null
   
   override check(GraphAnalysis analysis) {
@@ -50,8 +54,7 @@ class VariationalPT implements PosteriorInferenceEngine {
     pt.performInference
     if (optimize) {
       val objective = new TemperingObjective(this)  
-      val sgd = new SGD(objective)
-      sgd.optimize
+      optimizer.optimize(objective)
     }
   }
   

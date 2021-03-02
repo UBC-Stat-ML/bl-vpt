@@ -10,21 +10,19 @@ import blang.engines.internals.factories.PT.MonitoringOutput
 import blang.engines.internals.factories.PT.Column
 
 import static extension xlinear.MatrixExtensions.*
+import blang.inits.Implementations
 
+@Implementations(SGD)
 abstract class Optimizer {
-  
-  public val Objective obj
   
   @Arg
   public int maxIters = 100
   
   @GlobalArg public ExperimentResults results = new ExperimentResults
   
-  new (Objective obj) { this.obj = obj }
+  def DenseMatrix iterate(Objective obj, int iter)
   
-  def DenseMatrix iterate(int iter)
-  
-  def void optimize() {
+  def void optimize(Objective obj) {
     System::out.indentWithTiming(this.class.simpleName)
     for (iter : 0 ..< maxIters) {
       results.getTabularWriter("optimization").printAndWrite(
@@ -33,7 +31,7 @@ abstract class Optimizer {
         "point" -> obj.currentPoint.vectorToArray.join(" "), 
         "gradient" -> obj.gradient.vectorToArray.join(" ")
       )
-      obj.moveTo(iterate(iter))
+      obj.moveTo(iterate(obj, iter))
     }
     System::out.popIndent
   }
