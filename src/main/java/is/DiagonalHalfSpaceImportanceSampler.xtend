@@ -42,7 +42,7 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
   val boolean strict
   
   def DenseMatrix pow(DenseMatrix m, int p) {
-    return m.copy => [editInPlace[_, __, v|Math::pow(v, p)]]
+    return m.copy => [editInPlace[_arg1, _arg2, v|Math::pow(v, p)]]
   }
   
   private static def <T> double weightedSum(Iterable<T> samples, (T)=>Double weightFunction, int weightPower) {
@@ -170,7 +170,7 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
   }
   
   def DenseMatrix varianceEstimate() {
-    val meanSq = estimate => [editInPlace[_, __, v|v*v]]
+    val meanSq = estimate => [editInPlace[_arg1, _arg2, v|v*v]]
     return estimate(2) - meanSq
   }
   

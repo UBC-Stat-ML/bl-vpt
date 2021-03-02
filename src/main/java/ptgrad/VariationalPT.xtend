@@ -34,8 +34,8 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg                @DefaultValue("0.5")
   public double miniBurnInFraction = 0.5
   
-  @Arg            @DefaultValue("100")
-  public int nScansPerGradient = 100
+  @Arg            @DefaultValue("20")
+  public int nScansPerGradient = 20
     
   @Arg                  @DefaultValue("Rejection")
   public ObjectiveType objective = new Rejection
