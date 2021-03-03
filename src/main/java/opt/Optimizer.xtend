@@ -11,11 +11,12 @@ import blang.engines.internals.factories.PT.Column
 
 import static extension xlinear.MatrixExtensions.*
 import blang.inits.Implementations
+import blang.inits.DefaultValue
 
 @Implementations(SGD)
 abstract class Optimizer {
   
-  @Arg
+  @Arg   @DefaultValue("100")
   public int maxIters = 100
   
   @GlobalArg public ExperimentResults results = new ExperimentResults
