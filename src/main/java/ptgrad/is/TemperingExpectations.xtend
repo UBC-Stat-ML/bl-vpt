@@ -99,7 +99,18 @@ class TemperingExpectations {
     val first  = if (chainIndex === 0) [Sample s | s.gradient(betas.get(chainIndex))] else [one]
     val second = if (chainIndex === 0) [one] else [Sample s | s.gradient(betas.get(chainIndex))]
     return new DiagonalHalfSpaceImportanceSampler(
-      samples.get(0), [s | delta(s, betas)], first, [weight], // fixed a sign here!
+      samples.get(0), [s | delta(s, betas)], first, [weight], 
+      samples.get(1), [s | delta(s, betas)], second, [weight],
+      false
+    )
+  }
+  
+  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedTruncatedGradientSquare(ChainPair it, int chainIndex) {
+    val one = ones(1)
+    val first  = if (chainIndex === 0) [Sample s | s.gradient(betas.get(chainIndex)).pow(2)] else [one]
+    val second = if (chainIndex === 0) [one] else [Sample s | s.gradient(betas.get(chainIndex)).pow(2)]
+    return new DiagonalHalfSpaceImportanceSampler(
+      samples.get(0), [s | delta(s, betas)], first, [weight], 
       samples.get(1), [s | delta(s, betas)], second, [weight],
       false
     )
@@ -131,5 +142,11 @@ class TemperingExpectations {
     val item = newDoubleArrayOfSize(1)
     item.set(0, x)
     return MatrixOperations::denseCopy(item)
+  }
+  
+  def static DenseMatrix pow(DenseMatrix x, int power) {
+    val result = x.copy
+    result.editInPlace[r,c,v|Math::pow(v, power)]
+    return result
   }
 }

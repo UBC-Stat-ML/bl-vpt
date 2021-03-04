@@ -17,6 +17,9 @@ import java.util.ArrayList
 import blang.inits.Implementations
 import blang.inits.DefaultValue
 import bayonet.math.NumericalUtils
+import static extension xlinear.MatrixExtensions.*
+import static extension xlinear.MatrixOperations.*
+import java.util.Arrays
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -37,14 +40,16 @@ class TemperingObjective implements Objective {
     currentGradient = pointGradientPair.value
   }
   
-  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef)
+  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef, RejectionCV)
   static interface ObjectiveType {
-    def Pair<Double,DenseMatrix> compute(ChainPair p)
+    def Pair<Double,DenseMatrix> compute(ChainPair samples, ChainPair tuningSamples)
   }
+  
+
   
   static class Rejection implements ObjectiveType {
     
-    override compute(ChainPair p) {
+    override compute(ChainPair p, ChainPair tuningSamples) {
       
       // in the following, let T = 1[ acceptRatio > 1 ]
       
@@ -57,9 +62,10 @@ class TemperingObjective implements Objective {
       // gradient
       val gradientTerms = new ArrayList<DenseMatrix>(2)
       for (i : 0 ..< 2) {
-        val crossTerm = expectedTruncatedGradient(p, i).estimate                                           // E [ gradient_i x T ]
+        val crossTerm = expectedTruncatedGradient(p, i).estimate                           // E [ gradient_i x T ]
+        // NB: term below has expectation zero but acts as a basic control variate
         val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate // E_i [ gradient_i ]
-        val covar = crossTerm - probabilityOfTrunc * expectedGradient   // Covar[ gradient_i, T ]
+        val covar = crossTerm - probabilityOfTrunc * expectedGradient                      // Covar[ gradient_i, T ]
         gradientTerms.add(covar)
       }
       val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
@@ -69,11 +75,76 @@ class TemperingObjective implements Objective {
     
   }
   
+//    static class RejectionTest implements ObjectiveType {
+//    
+//    override compute(ChainPair p, ChainPair tuningSamples) {
+//      
+//      // in the following, let T = 1[ acceptRatio > 1 ]
+//      
+//      // point
+//      val expectedUntruncatedRatio = expectedUntruncatedRatio(p).estimate.get(0) // E[ (1 - T) x acceptRatio ]
+//      val probabilityOfTrunc = probabilityOfTruncation(p).estimate.get(0)        // E[ T ]
+//      val accept = expectedUntruncatedRatio + probabilityOfTrunc
+//      val reject = 1.0 - accept
+//      
+//      // gradient
+//      val gradientTerms = new ArrayList<DenseMatrix>(2)
+//      for (i : 0 ..< 2) {
+//        val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate // E_i [ gradient_i ]
+//        val covar = expectedGradient                      // Covar[ gradient_i, T ]
+//        gradientTerms.add(covar)
+//      }
+//      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
+//      
+//      return reject -> gradient
+//    }
+//    
+//  }
+  
+    static class RejectionCV implements ObjectiveType {
+    
+      override compute(ChainPair p, ChainPair tuningSamples) {
+        
+        // in the following, let T = 1[ acceptRatio > 1 ]
+        
+        // point
+        val expectedUntruncatedRatio = expectedUntruncatedRatio(p).estimate.get(0) // E[ (1 - T) x acceptRatio ]
+        val probabilityOfTrunc = probabilityOfTruncation(p).estimate.get(0)        // E[ T ]
+        val accept = expectedUntruncatedRatio + probabilityOfTrunc
+        val reject = 1.0 - accept
+        
+        // approximate optimal control variate coefficient using tuning samples
+        val ArrayList<DenseMatrix> controlCoefficients = new ArrayList 
+        for (i : 0 ..< 2) {
+          val covar = expectedTruncatedGradientSquare(tuningSamples, i).estimate
+          val variance = expectedGradient(tuningSamples.samples.get(i), p.betas.get(i)).estimate(2)
+          val coef = pointwiseDivide(covar, variance) 
+          for (e : 0 ..< coef.nEntries)
+            if (Double.isNaN(coef.get(e)))
+              coef.set(e, 0)
+          controlCoefficients.add(coef)
+        }
+        
+        // gradient
+        val gradientTerms = new ArrayList<DenseMatrix>(2)
+        for (i : 0 ..< 2) {
+          val basicEstimator = expectedTruncatedGradient(p, i).estimate 
+          val control = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate 
+          val controlledEstimator = basicEstimator - pointwiseProduct(controlCoefficients.get(i), control)             
+          gradientTerms.add(controlledEstimator)
+        }
+        val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
+        
+        return reject -> gradient
+      }
+    
+  }
+  
   static class Inef implements ObjectiveType {
     val Rejection rej = new Rejection
     
-    override compute(ChainPair p) {
-      val rejObj = rej.compute(p)
+    override compute(ChainPair p, ChainPair tuningSamples) {
+      val rejObj = rej.compute(p, tuningSamples)
       val r = rejObj.key
       val s = 1.0 - r
       return (r/s) -> (rejObj.value / Math::pow(s, 2))
@@ -83,8 +154,8 @@ class TemperingObjective implements Objective {
   
   static class SqrtHalfSKL implements ObjectiveType {
     val SKL skl = new SKL
-    override compute(ChainPair p) {
-      val sklObj = skl.compute(p)
+    override compute(ChainPair p, ChainPair tuningSamples) {
+      val sklObj = skl.compute(p, tuningSamples)
       val obj = if (sklObj.key <= 0.0) 1e-6 else Math::sqrt(0.5 * sklObj.key)
       return obj -> (sklObj.value / 4.0 / obj)
     }
@@ -92,7 +163,7 @@ class TemperingObjective implements Objective {
   
   static class SKL implements ObjectiveType {
     
-    override compute(ChainPair p) {
+    override compute(ChainPair p, ChainPair tuningSamples) {
       val objectiveTerms = new ArrayList<Double>(2)
       val gradientTerms = new ArrayList<DenseMatrix>(2)
       
@@ -116,12 +187,14 @@ class TemperingObjective implements Objective {
     
   def Pair<Double,DenseMatrix> estimate() {
     
-    // burn-in a bit?
+    // burn-in a bit
+    val tuningSamples = vpt.initSampleLists
     val nBurn = (vpt.nScansPerGradient * vpt.miniBurnInFraction) as int
     val it = vpt.pt
     for (i : 0 ..< nBurn) {
       moveKernel(nPassesPerScan)
       swapKernel
+      vpt.record(tuningSamples)
     }
     
     // samples list
@@ -143,7 +216,8 @@ class TemperingObjective implements Objective {
       val beta0 = betas.get(c)
       val beta1 = betas.get(c + 1)
       val pair = new ChainPair(#[beta0, beta1], #[samples.get(beta0), samples.get(beta1)])
-      val term = vpt.objective.compute(pair)
+      val tuning = new ChainPair(#[beta0, beta1], #[tuningSamples.get(beta0), tuningSamples.get(beta1)])
+      val term = vpt.objective.compute(pair, tuning)
       objectiveSum += term.key
       gradientSum += term.value
     }
@@ -161,6 +235,29 @@ class TemperingObjective implements Objective {
   
   override gradient() {
     currentGradient
+  }
+  
+  def static DenseMatrix pointwiseProduct(DenseMatrix m1, DenseMatrix m2) {
+    checkMatch(m1, m2)
+    val copy = MatrixOperations::dense(m1.nRows, m2.nCols)
+    for (r : 0 ..< m1.nRows)
+      for (c : 0 ..< m1.nCols)
+        copy.set(r, c, m1.get(r,c) * m2.get(r,c))
+    return copy
+  }
+  
+  def static DenseMatrix pointwiseDivide(DenseMatrix m1, DenseMatrix m2) {
+    checkMatch(m1, m2)
+    val copy = MatrixOperations::dense(m1.nRows, m2.nCols)
+    for (r : 0 ..< m1.nRows)
+      for (c : 0 ..< m1.nCols)
+        copy.set(r, c, m1.get(r,c) / m2.get(r,c))
+    return copy
+  }
+  
+  def static void checkMatch(DenseMatrix m1, DenseMatrix m2) {
+    if (m1.nRows !== m2.nRows ||  m1.nCols !== m2.nCols)
+      throw new RuntimeException
   }
   
 }

@@ -19,6 +19,7 @@ import java.util.LinkedHashMap
 import briefj.BriefMaps
 import ptgrad.TemperingObjective.Inef
 import ptgrad.TemperingObjective.SqrtHalfSKL
+import ptgrad.TemperingObjective.RejectionCV
 
 class ToyNormalTest extends Experiment {
   
@@ -37,6 +38,9 @@ class ToyNormalTest extends Experiment {
   @Arg @DefaultValue("1000")
   int      nOuterMC = 1000
   
+  @Arg @DefaultValue("100")
+  int      nInnerMC = 100
+  
   val static objectiveKey = "objective"
   def static gradientKey(int i) { "gradient_" + i }
   
@@ -47,6 +51,7 @@ class ToyNormalTest extends Experiment {
       "--engine", "ptgrad.VariationalPT",
       "--engine.pt.nPassesPerScan", "3",
       "--engine.pt.nChains", "2",
+      "--engine.nScansPerGradient", "" + nInnerMC,
       "--engine.optimize", "false"
     )
     val vpt = runner.engine as VariationalPT
