@@ -20,6 +20,7 @@ import briefj.BriefMaps
 import ptgrad.TemperingObjective.Inef
 import ptgrad.TemperingObjective.SqrtHalfSKL
 import ptgrad.TemperingObjective.RejectionCV
+import ptgrad.TemperingObjective.CVTest
 
 class ToyNormalTest extends Experiment {
   
@@ -59,7 +60,7 @@ class ToyNormalTest extends Experiment {
     runner.run()
     
     for (var double param = paramStart; param < paramEnd; param += paramIncrement) 
-      for (type : #[new SKL, new Rejection, new Inef, new SqrtHalfSKL]) {
+      for (type : #[new CVTest]) {
         vpt.objective = type
       
         vpt.parameters.set(0, param)

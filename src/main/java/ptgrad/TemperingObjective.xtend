@@ -73,6 +73,33 @@ class TemperingObjective implements Objective {
     
   }
   
+  static class CVTest implements ObjectiveType {
+    
+    override compute(ChainPair p, ChainPair tuningSamples) {
+      
+      // in the following, let T = 1[ acceptRatio > 1 ]
+      
+      // point
+      val expectedUntruncatedRatio = expectedUntruncatedRatio(p).estimate.get(0) // E[ (1 - T) x acceptRatio ]
+      val probabilityOfTrunc = probabilityOfTruncation(p).estimate.get(0)        // E[ T ]
+      val accept = expectedUntruncatedRatio + probabilityOfTrunc
+      val reject = 1.0 - accept
+      
+      // gradient
+      val gradientTerms = new ArrayList<DenseMatrix>(2)
+      for (i : 0 ..< 2) {
+        val crossTerm = TEST(p, i).estimate 
+        gradientTerms.add(crossTerm)
+      }
+      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
+      
+      println(gradient.get(0) + " " + probabilityOfTrunc)
+      
+      return reject -> gradient
+    }
+    
+  }
+  
   static class RejectionCV implements ObjectiveType {
   
     override compute(ChainPair p, ChainPair tuningSamples) {
