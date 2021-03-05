@@ -105,18 +105,6 @@ class TemperingExpectations {
     )
   }
   
-  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> TEST(ChainPair it, int chainIndex) {
-    val one = ones(1)
-    val int otherIndex = 1 - chainIndex
-    val first  = if (chainIndex === 0) [Sample s | s.gradient(betas.get(otherIndex))] else [one]
-    val second = if (chainIndex === 0) [one] else [Sample s | s.gradient(betas.get(otherIndex))]
-    return new DiagonalHalfSpaceImportanceSampler(
-      samples.get(0), [s | delta(s, betas)], first, [weight], 
-      samples.get(1), [s | delta(s, betas)], second, [weight],
-      false
-    )
-  }
-  
   def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedTruncatedGradientSquare(ChainPair it, int chainIndex) {
     val one = ones(1)
     val first  = if (chainIndex === 0) [Sample s | s.gradient(betas.get(chainIndex)).pow(2)] else [one]
