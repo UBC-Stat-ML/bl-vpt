@@ -42,22 +42,13 @@ class TemperingObjective implements Objective {
     currentGradient = pointGradientPair.value
   }
   
-  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef, RejectionAdaptiveCV, RejectionNoControlVariate, TEST)
+  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef) 
   static interface ObjectiveType {
     def Pair<Double,DenseMatrix> compute(ChainPair samples, ChainPair tuningSamples)
   }
   
-  static class RejectionNoControlVariate extends Rejection {
-    @DesignatedConstructor
-    new() {
-      this.fixedControlVariateScale = 0.0
-    }
-  }
-  
   static class Rejection implements ObjectiveType {
-    
-    public double fixedControlVariateScale = 1.0
-    
+        
     override compute(ChainPair p, ChainPair tuningSamples) {
       
       // in the following, let T = 1[ acceptRatio > 1 ]
@@ -74,74 +65,8 @@ class TemperingObjective implements Objective {
         val crossTerm = expectedTruncatedGradient(p, i).estimate                           // E [ gradient_i x T ]
         // NB: term below has expectation zero but acts as a basic control variate
         val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate // E_i [ gradient_i ]
-        val covar = crossTerm - fixedControlVariateScale * probabilityOfTrunc * expectedGradient                      // Covar[ gradient_i, T ]
+        val covar = crossTerm - probabilityOfTrunc * expectedGradient                      // Covar[ gradient_i, T ]
         gradientTerms.add(covar)
-      }
-      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
-      
-      return reject -> gradient
-    }
-    
-  }
-  
-  static class TEST implements ObjectiveType {
-    
-    public double fixedControlVariateScale = 1.0
-    
-    override compute(ChainPair p, ChainPair tuningSamples) {
-      
-      // in the following, let T = 1[ acceptRatio > 1 ]
-      
-      // point
-      val expectedUntruncatedRatio = expectedUntruncatedRatio(p).estimate.get(0) // E[ (1 - T) x acceptRatio ]
-      val probabilityOfTrunc = probabilityOfTruncation(p).estimate.get(0)        // E[ T ]
-      val accept = expectedUntruncatedRatio + probabilityOfTrunc
-      val reject = 1.0 - accept
-      
-      // gradient
-      val gradientTerms = new ArrayList<DenseMatrix>(2)
-      for (i : 0 ..< 2) {
-        val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate // E_i [ gradient_i ]
-        gradientTerms.add(expectedGradient)
-      }
-      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
-      
-      return reject -> gradient
-    }
-    
-  }
-  
-  static class RejectionAdaptiveCV implements ObjectiveType {
-  
-    override compute(ChainPair p, ChainPair tuningSamples) {
-      
-      // in the following, let T = 1[ acceptRatio > 1 ]
-      
-      // point
-      val expectedUntruncatedRatio = expectedUntruncatedRatio(p).estimate.get(0) // E[ (1 - T) x acceptRatio ]
-      val probabilityOfTrunc = probabilityOfTruncation(p).estimate.get(0)        // E[ T ]
-      val accept = expectedUntruncatedRatio + probabilityOfTrunc
-      val reject = 1.0 - accept
-      
-      // approximate optimal control variate coefficient using tuning samples
-      val ArrayList<DenseMatrix> controlCoefficients = new ArrayList 
-      for (i : 0 ..< 2) {
-        val covar = expectedTruncatedGradientSquare(tuningSamples, i).estimate
-        val variance = expectedGradient(tuningSamples.samples.get(i), p.betas.get(i)).estimate(2)
-        val coef = pointwiseDivide(covar, variance) 
-        for (e : 0 ..< coef.nEntries)
-          if (Double.isNaN(coef.get(e)))
-            coef.set(e, 0)
-        controlCoefficients.add(coef)
-      }
-      
-      // gradient
-      val gradientTerms = new ArrayList<DenseMatrix>(2)
-      for (i : 0 ..< 2) {
-        val basicEstimator = expectedTruncatedGradient(p, i).estimate 
-        val control = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate 
-        val controlledEstimator = basicEstimator - pointwiseProduct(controlCoefficients.get(i), control)             
-        gradientTerms.add(controlledEstimator)
       }
       val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
       
