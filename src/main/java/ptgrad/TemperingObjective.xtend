@@ -20,6 +20,7 @@ import bayonet.math.NumericalUtils
 import static extension xlinear.MatrixExtensions.*
 import static extension xlinear.MatrixOperations.*
 import java.util.Arrays
+import blang.inits.DesignatedConstructor
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -41,12 +42,22 @@ class TemperingObjective implements Objective {
     currentGradient = pointGradientPair.value
   }
   
-  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef, RejectionCV)
+  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef, RejectionAdaptiveCV, RejectionNoControlVariate)
   static interface ObjectiveType {
     def Pair<Double,DenseMatrix> compute(ChainPair samples, ChainPair tuningSamples)
   }
   
+  static class RejectionNoControlVariate extends Rejection {
+    @DesignatedConstructor
+    new() {
+      this.fixedControlVariateScale = 0.0
+    }
+  }
+  
   static class Rejection implements ObjectiveType {
+    
+    @Arg @DefaultValue("1.0")
+    public double fixedControlVariateScale = 1.0
     
     override compute(ChainPair p, ChainPair tuningSamples) {
       
@@ -64,7 +75,7 @@ class TemperingObjective implements Objective {
         val crossTerm = expectedTruncatedGradient(p, i).estimate                           // E [ gradient_i x T ]
         // NB: term below has expectation zero but acts as a basic control variate
         val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate // E_i [ gradient_i ]
-        val covar = crossTerm - probabilityOfTrunc * expectedGradient                      // Covar[ gradient_i, T ]
+        val covar = crossTerm - fixedControlVariateScale * probabilityOfTrunc * expectedGradient                      // Covar[ gradient_i, T ]
         gradientTerms.add(covar)
       }
       val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
@@ -74,7 +85,7 @@ class TemperingObjective implements Objective {
     
   }
   
-  static class RejectionCV implements ObjectiveType {
+  static class RejectionAdaptiveCV implements ObjectiveType {
   
     override compute(ChainPair p, ChainPair tuningSamples) {
       

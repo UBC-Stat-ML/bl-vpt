@@ -19,7 +19,6 @@ import java.util.LinkedHashMap
 import briefj.BriefMaps
 import ptgrad.TemperingObjective.Inef
 import ptgrad.TemperingObjective.SqrtHalfSKL
-import ptgrad.TemperingObjective.RejectionCV
 
 class ToyNormalTest extends Experiment {
   
