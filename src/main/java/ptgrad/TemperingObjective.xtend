@@ -31,10 +31,11 @@ class TemperingObjective implements Objective {
   
   var double currentPoint
   var DenseMatrix currentGradient
+  var evaluationIndex = 0
   
   override moveTo(DenseMatrix updatedParameter) {
     vpt.parameters.setTo(updatedParameter)
-    // reset statistics
+    // recompute statistics
     val pointGradientPair = estimate()
     currentPoint = pointGradientPair.key
     currentGradient = pointGradientPair.value
@@ -159,6 +160,9 @@ class TemperingObjective implements Objective {
     
   def Pair<Double,DenseMatrix> estimate() {
     
+    // keep a detailed log
+    val detailedLogs = vpt.results.getTabularWriter("detailedEvaluation").child("evaluation", evaluationIndex++)
+    
     // burn-in a bit
     val tuningSamples = vpt.initSampleLists
     val nBurn = (vpt.nScansPerGradient * vpt.miniBurnInFraction) as int
@@ -190,6 +194,12 @@ class TemperingObjective implements Objective {
       val pair = new ChainPair(#[beta0, beta1], #[samples.get(beta0), samples.get(beta1)])
       val tuning = new ChainPair(#[beta0, beta1], #[tuningSamples.get(beta0), tuningSamples.get(beta1)])
       val term = vpt.objective.compute(pair, tuning)
+      detailedLogs.write(
+        "chain" -> c,
+        "point" -> vpt.parameters.vectorToArray.join(" "), 
+        "objective" -> term.key,
+        "gradient" -> term.value.vectorToArray.join(" ")
+      )
       objectiveSum += term.key
       gradientSum += term.value
     }

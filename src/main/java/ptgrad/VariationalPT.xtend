@@ -7,8 +7,6 @@ import blang.inits.Arg
 import blang.engines.internals.factories.PT
 import xlinear.DenseMatrix
 import blang.engines.ParallelTempering
-import xlinear.AutoDiff
-import java.util.HashMap
 import ptgrad.is.Sample
 import java.util.List
 import java.util.Map
@@ -16,13 +14,13 @@ import java.util.LinkedHashMap
 import java.util.ArrayList
 import ptgrad.is.FixedSample
 
-import static java.lang.Math.*
 import opt.SGD
 import blang.inits.DefaultValue
 import ptgrad.TemperingObjective.ObjectiveType
 import ptgrad.TemperingObjective.Rejection
-import briefj.BriefLog
 import opt.Optimizer
+import blang.inits.GlobalArg
+import blang.inits.experiments.ExperimentResults
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -43,6 +41,8 @@ class VariationalPT implements PosteriorInferenceEngine {
   
   @Arg              @DefaultValue("SGD")
   public Optimizer optimizer = new SGD 
+  
+  @GlobalArg public ExperimentResults results = new ExperimentResults
   
   public var DenseMatrix parameters = null
   

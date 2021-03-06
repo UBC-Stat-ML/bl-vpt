@@ -28,8 +28,8 @@ abstract class Optimizer {
     for (iter : 0 ..< maxIters) {
       results.getTabularWriter("optimization").printAndWrite(
         "iter" -> iter,
-        "objective" -> obj.evaluate,
         "point" -> obj.currentPoint.vectorToArray.join(" "), 
+        "objective" -> obj.evaluate,
         "gradient" -> obj.gradient.vectorToArray.join(" ")
       )
       obj.moveTo(iterate(obj, iter))
