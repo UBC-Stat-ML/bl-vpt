@@ -56,7 +56,6 @@ class TemperingObjective implements Objective {
   
   static class Rejection implements ObjectiveType {
     
-    @Arg @DefaultValue("1.0")
     public double fixedControlVariateScale = 1.0
     
     override compute(ChainPair p, ChainPair tuningSamples) {
