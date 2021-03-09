@@ -153,8 +153,14 @@ class TemperingObjective implements Objective {
     for (int c : 0 ..< (nChains - 1)) {
       val beta0 = betas.get(c)
       val beta1 = betas.get(c + 1)
-      val pair = new ChainPair(#[beta0, beta1], #[samples.get(beta0), samples.get(beta1)])
-      val tuning = new ChainPair(#[beta0, beta1], #[tuningSamples.get(beta0), tuningSamples.get(beta1)])
+      var pair = new ChainPair(#[beta0, beta1], #[samples.get(beta0), samples.get(beta1)])
+      var tuning = new ChainPair(#[beta0, beta1], #[tuningSamples.get(beta0), tuningSamples.get(beta1)])
+      
+      if (vpt.useSwapAntithetics) {
+        pair = pair.addAntitheticSamples
+        tuning = tuning.addAntitheticSamples
+      }
+      
       val term = vpt.objective.compute(pair, tuning)
       detailedLogs.write(
         "chain" -> c,

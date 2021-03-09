@@ -42,6 +42,9 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg              @DefaultValue("SGD")
   public Optimizer optimizer = new SGD 
   
+  @Arg                 @DefaultValue("true")
+  public boolean useSwapAntithetics = true
+  
   @GlobalArg public ExperimentResults results = new ExperimentResults
   
   public var DenseMatrix parameters = null
@@ -83,7 +86,7 @@ class VariationalPT implements PosteriorInferenceEngine {
         if (i + 1 < allBetas.size)
           add(allBetas.get(i + 1))
       ]
-      val sample = new FixedSample(interpolation, currentBetas)
+      val sample = new FixedSample(interpolation, currentBetas, beta)
       samples.get(beta).add(sample)
     }
   }
