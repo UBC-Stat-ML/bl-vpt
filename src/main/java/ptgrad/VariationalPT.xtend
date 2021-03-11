@@ -21,6 +21,7 @@ import ptgrad.TemperingObjective.Rejection
 import opt.Optimizer
 import blang.inits.GlobalArg
 import blang.inits.experiments.ExperimentResults
+import blang.engines.internals.factories.MCMC
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -42,8 +43,10 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg              @DefaultValue("SGD")
   public Optimizer optimizer = new SGD 
   
-  @Arg                 @DefaultValue("true")
-  public boolean useSwapAntithetics = true
+  @Arg                 @DefaultValue("MCMC")
+  public Antithetics antithetics = Antithetics.MCMC
+  
+  static enum Antithetics { OFF, IS, MCMC }
   
   @GlobalArg public ExperimentResults results = new ExperimentResults
   

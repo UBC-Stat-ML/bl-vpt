@@ -21,6 +21,7 @@ import static extension xlinear.MatrixExtensions.*
 import static extension xlinear.MatrixOperations.*
 import java.util.Arrays
 import blang.inits.DesignatedConstructor
+import ptgrad.VariationalPT.Antithetics
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -156,10 +157,14 @@ class TemperingObjective implements Objective {
       var pair = new ChainPair(#[beta0, beta1], #[samples.get(beta0), samples.get(beta1)])
       var tuning = new ChainPair(#[beta0, beta1], #[tuningSamples.get(beta0), tuningSamples.get(beta1)])
       
-      if (vpt.useSwapAntithetics) {
+      if (vpt.antithetics == Antithetics.OFF) {}
+      else if (vpt.antithetics == Antithetics.IS) {
         pair = pair.addAntitheticSamples
         tuning = tuning.addAntitheticSamples
-      }
+      } else if (vpt.antithetics == Antithetics.MCMC) {
+        pair = pair.addMCMCAntitheticSamples(vpt.pt.random)
+        tuning = tuning.addMCMCAntitheticSamples(vpt.pt.random)
+      } else throw new RuntimeException
       
       val term = vpt.objective.compute(pair, tuning)
       detailedLogs.write(
