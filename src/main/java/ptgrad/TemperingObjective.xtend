@@ -43,7 +43,7 @@ class TemperingObjective implements Objective {
     currentGradient = pointGradientPair.value
   }
   
-  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef) 
+  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef, ApproxRejection) 
   static interface ObjectiveType {
     def Pair<Double,DenseMatrix> compute(ChainPair samples, ChainPair tuningSamples)
   }
@@ -69,6 +69,45 @@ class TemperingObjective implements Objective {
         val covar = crossTerm - probabilityOfTrunc * expectedGradient                      // Covar[ gradient_i, T ]
         gradientTerms.add(covar)
       }
+      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
+      
+      return reject -> gradient
+    }
+    
+  }
+  
+  static class ApproxRejection implements ObjectiveType {
+        
+    override compute(ChainPair p, ChainPair tuningSamples) {
+      
+      // in the following, let T = 1[ acceptRatio > 1 ]
+      
+      // point
+      val expectedUntruncatedRatio = expectedUntruncatedRatio(p).estimate.get(0) // E[ (1 - T) x acceptRatio ]
+      val probabilityOfTrunc = probabilityOfTruncation(p).estimate.get(0)        // E[ T ]
+      val accept = expectedUntruncatedRatio + probabilityOfTrunc
+      val reject = 1.0 - accept
+      
+      // gradient
+      val gradientTerms = new ArrayList<DenseMatrix>(2)
+      
+      
+      for (i : 1 .. 1) {
+        val crossTerm = expectedTruncatedGradient(p, i).estimate                           // E [ gradient_i x T ]
+        // NB: term below has expectation zero but acts as a basic control variate
+        val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate // E_i [ gradient_i ]
+        val covar = crossTerm - probabilityOfTrunc * expectedGradient                      // Covar[ gradient_i, T ]
+        gradientTerms.add(covar)
+      }
+      
+      for (i : 0 .. 0) {
+        val crossTerm = expectedTruncatedCrossGradient(p, 0).estimate                          
+        // NB: term below has expectation zero but acts as a basic control variate
+        val expectedGradient = expectedGradient(p.samples.get(1), p.betas.get(0)).estimate 
+        val covar = crossTerm - probabilityOfTrunc * expectedGradient                  
+        gradientTerms.add(covar.mul(-1.0) )
+      }
+      
       val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
       
       return reject -> gradient
