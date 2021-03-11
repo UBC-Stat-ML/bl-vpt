@@ -26,16 +26,10 @@ class ToyNormal extends Interpolation {
   override DerivativeStructure logDensity(List<DerivativeStructure> inputs) {
     val paramDelta = inputs.paramDelta
     val beta = inputs.beta
-    if (beta.value !== 0.0 && beta.value !== 1.0) throw new RuntimeException
     val it = inputs.get(0)
-    val zero = constant(0.0)
     val one = constant(1.0)
     val x = constant(x.doubleValue)
-    val mean = 
-      if (beta.value === 0.0)
-        zero
-      else
-        paramDelta
+    val mean = paramDelta * beta
     return normalLogDensity(x, mean, one)
   }
   
