@@ -21,7 +21,7 @@ import ptgrad.TemperingObjective.Rejection
 import opt.Optimizer
 import blang.inits.GlobalArg
 import blang.inits.experiments.ExperimentResults
-import blang.engines.internals.factories.MCMC
+import java.util.Optional
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -49,6 +49,9 @@ class VariationalPT implements PosteriorInferenceEngine {
   static enum Antithetics { OFF, IS, MCMC }
   
   @GlobalArg public ExperimentResults results = new ExperimentResults
+  
+  @Arg
+  public Optional<List<Double>> initialParameters = Optional.empty
   
   public var DenseMatrix parameters = null
   
@@ -125,6 +128,13 @@ class VariationalPT implements PosteriorInferenceEngine {
     this.parameters = model(0).parameters
     for (chain : 0 ..< pt.nChains)
       model(chain).parameters = this.parameters
+    if (initialParameters.present) {
+      val inits = initialParameters.get
+      if (inits.size !== this.parameters.nEntries) 
+        throw new RuntimeException
+      for (i : 0 ..< this.parameters.nEntries) 
+        this.parameters.set(i, inits.get(i))
+    }
   }
   
   def Interpolation model(int chainIndex) {
