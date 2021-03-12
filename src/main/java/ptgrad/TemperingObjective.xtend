@@ -101,7 +101,7 @@ class TemperingObjective implements Objective {
       }
       
       for (i : 0 .. 0) {
-        val crossTerm = expectedTruncatedCrossGradient(p, 1).estimate                          
+        val crossTerm = expectedTruncatedCrossGradient(p).estimate                          
         // NB: term below has expectation zero but acts as a basic control variate
         val expectedGradient = expectedGradient(p.samples.get(1), p.betas.get(0)).estimate 
         val covar = crossTerm - probabilityOfTrunc * expectedGradient                  
