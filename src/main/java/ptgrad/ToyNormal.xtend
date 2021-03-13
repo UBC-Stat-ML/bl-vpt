@@ -14,11 +14,16 @@ import static extension xlinear.MatrixExtensions.*
 
 import static extension xlinear.AutoDiff.*
 import blang.types.StaticUtils
+import blang.inits.Arg
+import blang.inits.DefaultValue
 
 class ToyNormal extends Interpolation {
   
   val static String _param_delta = "param_delta"
   val static String _variable_x = "x"
+  
+  @Arg @DefaultValue("0.0")
+  public double mu0 = 0.0
   
   def DerivativeStructure paramDelta(List<DerivativeStructure> it) { get(_param_delta) }
   def WritableRealVar x() { return variables.get(_variable_x) as WritableRealVar }
@@ -29,7 +34,7 @@ class ToyNormal extends Interpolation {
     val it = inputs.get(0)
     val one = constant(1.0)
     val x = constant(x.doubleValue)
-    val mean = paramDelta * beta
+    val mean = paramDelta * beta + (1.0 - beta) * mu0
     return normalLogDensity(x, mean, one)
   }
   
