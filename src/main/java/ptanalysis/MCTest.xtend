@@ -35,7 +35,9 @@ class MCTest {
   def static double SD(ProbabilitySpace it, ()=>Double function) { Math::sqrt(Var(function))}
   
   def static double Covar(ProbabilitySpace it, ()=>Double var1, ()=>Double var2) {
-    return E[var1.apply * var2.apply] - E(var1) * E(var2)
+    val e1 = E(var1)
+    val e2 = E(var2)
+    return E[(var1.apply - e1) * (var2.apply - e2)]
   }
   
   static class Simple implements ProbabilitySpace {

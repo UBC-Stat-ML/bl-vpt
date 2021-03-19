@@ -12,7 +12,7 @@ import static extension ptanalysis.MCTest.*
 
 class PTGradientTest2 implements ProbabilitySpace {
   
-  val rand = new Random(1)
+  var rand = new Random(1)
   val int n
   val double phi
   
@@ -99,12 +99,14 @@ class PTGradientTest2 implements ProbabilitySpace {
     }
   }
   
+  var offset = 0.0
+  
   def W(int i, double value) {
-    return -pow(value - mu(i), 2) / 2.0 - 0.5 * log(2.0 * PI)
+    return -pow(value - mu(i), 2) / 2.0 - 0.5 * log(2.0 * PI) + offset * beta(i) * phi
   }
   
   def gradW(int i, double value) {
-    return beta(i) * (value - mu(i))
+    return beta(i) * (value - mu(i))+ offset * beta(i)
   }
   
   def rejectRate(int i) {
@@ -171,17 +173,30 @@ class PTGradientTest2 implements ProbabilitySpace {
     // now with an intermediate chain
     val myphi = phi //(n-1) *phi
     new PTGradientTest2(n, myphi) => [
-      numberMonteCarloIterations = 10000000
+      numberMonteCarloIterations = 1000000
+      //ah! ah! numerical issue when computing covar!
       
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      offset = 10.0
+      rand = new Random(1)
+      println
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      println("gradRejectRate(5): " + gradRejectRate(5))
+      println("gradRejectRate(5): " + gradRejectRate(5))
       
-      println("rate(0): " + rejectRate(0))
-      println("rate(8): " + rejectRate(6))
-      println("grad3(0): " + gradRejectRate3(0))
-      println("grad3(8): " + gradRejectRate3(6))
-      println("grad2(0): " + gradRejectRate2(0))
-      println("grad2(8): " + gradRejectRate2(6))
-      println("grad(0): " + gradRejectRate(0))
-      println("grad(8): " + gradRejectRate(6))
+//      println("rate(8): " + rejectRate(6))
+//      println("grad3(0): " + gradRejectRate3(0))
+//      println("grad3(8): " + gradRejectRate3(6))
+//      println("grad2(0): " + gradRejectRate2(0))
+//      println("grad2(8): " + gradRejectRate2(6))
+//      println("grad(0): " + gradRejectRate(0))
+//      println("grad(8): " + gradRejectRate(6))
       
 //      val delta = beta(2) - beta(1)
 //      val firstTerm = delta * E[T2(1, myphi) * Z(2)]

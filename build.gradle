@@ -9,10 +9,10 @@ plugins {
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
-def blangVersion = '4.0.1' 
+def blangVersion = '4.0.7' 
 dependencies {
   xtextLanguages "com.github.UBC-Stat-ML.blangDSL:ca.ubc.stat.blang:${blangVersion}"
-  compile group: 'com.github.UBC-Stat-ML', name: 'blangSDK', version: '2.12.3'
+  compile group: 'com.github.UBC-Stat-ML', name: 'blangSDK', version: '2.13.0'
 }
 
 xtext {

@@ -25,6 +25,8 @@ class ToyNormal extends Interpolation {
   @Arg @DefaultValue("0.0")
   public double mu0 = 0.0
   
+  public double variance = 1.0
+  
   def DerivativeStructure paramDelta(List<DerivativeStructure> it) { get(_param_delta) }
   def WritableRealVar x() { return variables.get(_variable_x) as WritableRealVar }
   
@@ -32,10 +34,10 @@ class ToyNormal extends Interpolation {
     val paramDelta = inputs.paramDelta
     val beta = inputs.beta
     val it = inputs.get(0)
-    val one = constant(1.0)
+    val one = constant(variance)
     val x = constant(x.doubleValue)
     val mean = paramDelta * beta + (1.0 - beta) * mu0
-    return normalLogDensity(x, mean, one)
+    return normalLogDensity(x, mean, one) //+ 0.5 * (1.0 + beta) * Math::log(2.0*Math::PI)
   }
   
   override sample(Random random, List<DerivativeStructure> it) {

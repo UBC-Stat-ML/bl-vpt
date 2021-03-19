@@ -56,7 +56,9 @@ class StatisticsMain extends Experiment {
         acceptStatst1.addValue(expectedUntruncatedRatio.estimate.get(0))
         acceptStatst2.addValue(probabilityOfTruncation.estimate.get(0))
 
-        val expectedGradient = TemperingExpectations::expectedTruncatedGradient(new ChainPair(#[beta1, beta2], #[samples1, samples2]), 0)
+        val p = new ChainPair(#[beta1, beta2], #[samples1, samples2])
+        val centering = TemperingExpectations::expectedGradient(p.samples.get(0), p.betas.get(0)).estimate 
+        val expectedGradient = TemperingExpectations::expectedTruncatedGradient(p, 0, centering)
         
         check(expectedGradient)
         
