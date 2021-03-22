@@ -1,27 +1,20 @@
 package ptgrad
 
+import blang.inits.Implementations
+import java.util.ArrayList
 import opt.Objective
+import ptgrad.VariationalPT.Antithetics
+import ptgrad.is.ChainPair
 import xlinear.DenseMatrix
-import org.eclipse.xtend.lib.annotations.Data
-import blang.types.StaticUtils
-import static extension blang.types.ExtensionUtils.*
-import blang.inits.Arg
 import xlinear.MatrixOperations
+
+import static ptgrad.is.TemperingExpectations.*
+
+import static extension blang.types.ExtensionUtils.*
 import static extension xlinear.MatrixExtensions.*
+import java.util.Map
 import java.util.List
 import ptgrad.is.Sample
-import ptgrad.is.ChainPair
-import blang.inits.experiments.tabwriters.TabularWriter
-import static ptgrad.is.TemperingExpectations.*
-import java.util.ArrayList
-import blang.inits.Implementations
-import blang.inits.DefaultValue
-import bayonet.math.NumericalUtils
-import static extension xlinear.MatrixExtensions.*
-import static extension xlinear.MatrixOperations.*
-import java.util.Arrays
-import blang.inits.DesignatedConstructor
-import ptgrad.VariationalPT.Antithetics
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -189,13 +182,23 @@ class TemperingObjective implements Objective {
     for (int c : 0 ..< (nChains - 1)) {
       val beta0 = betas.get(c)
       val beta1 = betas.get(c + 1)
-      var pair = new ChainPair(#[beta0, beta1], #[samples.get(beta0), samples.get(beta1)])
-      var tuning = new ChainPair(#[beta0, beta1], #[tuningSamples.get(beta0), tuningSamples.get(beta1)])
+      var pair = new ChainPair(#[beta0, beta1], #[new ArrayList(samples.get(beta0)), new ArrayList(samples.get(beta1))])
+      var tuning = new ChainPair(#[beta0, beta1], #[new ArrayList(tuningSamples.get(beta0)), new ArrayList(tuningSamples.get(beta1))])
       
       if (vpt.antithetics == Antithetics.OFF) {}
       else if (vpt.antithetics == Antithetics.IS) {
-        pair = pair.addAntitheticSamples
-        tuning = tuning.addAntitheticSamples
+        
+        // do this before
+        val antitMain = pair.antitheticSamples
+        val antitTuning = tuning.antitheticSamples
+        
+        addNeighbours(samples, vpt.betas, antitMain, c)
+        addNeighbours(tuningSamples, vpt.betas, antitTuning, c)
+        
+        pair.addInPlace(antitMain)
+        tuning.addInPlace(antitTuning)
+        
+        
       } else if (vpt.antithetics == Antithetics.MCMC) {
         pair = pair.addMCMCAntitheticSamples(vpt.pt.random)
         tuning = tuning.addMCMCAntitheticSamples(vpt.pt.random)
@@ -213,6 +216,36 @@ class TemperingObjective implements Objective {
     }
     
     return objectiveSum -> gradientSum
+  }
+  
+  def addNeighbours(Map<Double, List<Sample>> samples, List<Double> betas, ChainPair pair, int _chain) {
+    val initialESS = pair.ess
+    for (direction : #[1, -1]) // start towards prior; on a normal example indeed seems to work slightly better (562 avg ESS vs 492)
+      addNeighbours(samples, betas, pair, _chain, initialESS, direction) 
+  }
+  
+  def addNeighbours(Map<Double, List<Sample>> samples, List<Double> betas, ChainPair pair, int _chain, double initialESS, int direction) {
+    if (vpt.relativeESSNeighbourhoodThreshold == 1.0)
+      return
+    var previousESS = initialESS
+    var int current = _chain + direction
+    var currentESS = 0.0
+    while (current >= 0 && current < vpt.pt.nChains) {
+      val curBeta = betas.get(current)
+      if (!pair.betas.contains(curBeta)) {
+        pair.addInPlace(samples.get(curBeta))    
+        currentESS = pair.ess
+        val gain = (currentESS - previousESS) / initialESS
+        //println("cur=" + currentESS + ",gain=" + gain)
+        if (gain < vpt.relativeESSNeighbourhoodThreshold) { 
+          //println(currentESS)
+          return
+        }
+        previousESS = currentESS
+      }
+      current = current + direction
+    }
+    //println(currentESS)
   }
   
   override currentPoint() {

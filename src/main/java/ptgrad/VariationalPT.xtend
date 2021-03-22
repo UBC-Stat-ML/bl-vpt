@@ -31,8 +31,8 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg       @DefaultValue("true")
   public boolean optimize = true
   
-  @Arg                @DefaultValue("0.5")
-  public double miniBurnInFraction = 0.5
+  @Arg                @DefaultValue("0.25")
+  public double miniBurnInFraction = 0.25
   
   @Arg            @DefaultValue("20")
   public int nScansPerGradient = 20
@@ -43,10 +43,13 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg              @DefaultValue("SGD")
   public Optimizer optimizer = new SGD 
   
-  @Arg                 @DefaultValue("MCMC")
-  public Antithetics antithetics = Antithetics.MCMC
+  @Arg                 @DefaultValue("IS")
+  public Antithetics antithetics = Antithetics.IS
   
   static enum Antithetics { OFF, IS, MCMC }
+  
+  @Arg  @DefaultValue("0.5")
+  public double relativeESSNeighbourhoodThreshold = 0.5
   
   @GlobalArg public ExperimentResults results = new ExperimentResults
   
@@ -71,7 +74,7 @@ class VariationalPT implements PosteriorInferenceEngine {
     return (0 ..< pt.nChains).map[pt.states.get(it).exponent].toList
   }
   
-  def initSampleLists() {
+  def Map<Double, List<Sample>> initSampleLists() {
     val samples = new LinkedHashMap<Double, List<Sample>>
     for (i : 0 ..< pt.nChains) {
       val beta = pt.states.get(i).exponent
@@ -85,7 +88,10 @@ class VariationalPT implements PosteriorInferenceEngine {
     for (i : 0 ..< pt.nChains) {
       val beta = pt.states.get(i).exponent
       val interpolation = model(i)
-      val currentBetas = new ArrayList<Double> => [
+      val currentBetas = if (antithetics == Antithetics.IS && relativeESSNeighbourhoodThreshold != 1.0) 
+        betas() 
+      else 
+        new ArrayList<Double> => [
         add(allBetas.get(i))
         if (i - 1 >= 0) 
           add(allBetas.get(i - 1))
