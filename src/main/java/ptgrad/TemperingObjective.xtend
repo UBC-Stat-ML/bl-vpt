@@ -207,6 +207,7 @@ class TemperingObjective implements Objective {
       val term = vpt.objective.compute(pair, tuning)
       detailedLogs.write(
         "chain" -> c,
+        "ess" -> pair.ess,
         "point" -> vpt.parameters.vectorToArray.join(" "), 
         "objective" -> term.key,
         "gradient" -> term.value.vectorToArray.join(" ")
@@ -236,16 +237,13 @@ class TemperingObjective implements Objective {
         pair.addInPlace(samples.get(curBeta))    
         currentESS = pair.ess
         val gain = (currentESS - previousESS) / initialESS
-        //println("cur=" + currentESS + ",gain=" + gain)
         if (gain < vpt.relativeESSNeighbourhoodThreshold) { 
-          //println(currentESS)
           return
         }
         previousESS = currentESS
       }
       current = current + direction
     }
-    //println(currentESS)
   }
   
   override currentPoint() {
