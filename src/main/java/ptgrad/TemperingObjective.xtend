@@ -220,18 +220,21 @@ class TemperingObjective implements Objective {
   }
   
   def addNeighbours(Map<Double, List<Sample>> samples, List<Double> betas, ChainPair pair, int _chain) {
+    val maxExpansion = Math::min(_chain, vpt.pt.nChains - _chain - 1) // avoid asymmetric number of chains on either side
     val initialESS = pair.ess
     for (direction : #[1, -1]) // start towards prior; on a normal example indeed seems to work slightly better (562 avg ESS vs 492)
-      addNeighbours(samples, betas, pair, _chain, initialESS, direction) 
+      addNeighbours(samples, betas, pair, _chain, initialESS, direction, maxExpansion) 
   }
   
-  def addNeighbours(Map<Double, List<Sample>> samples, List<Double> betas, ChainPair pair, int _chain, double initialESS, int direction) {
+  def addNeighbours(Map<Double, List<Sample>> samples, List<Double> betas, ChainPair pair, int _chain, double initialESS, int direction, int maxExpansion) {
     if (vpt.relativeESSNeighbourhoodThreshold == 1.0)
       return
     var previousESS = initialESS
     var int current = _chain + direction
     var currentESS = 0.0
-    while (current >= 0 && current < vpt.pt.nChains) {
+    var nExpansions = 0
+    while (current >= 0 && current < vpt.pt.nChains && nExpansions < maxExpansion) {
+      nExpansions++
       val curBeta = betas.get(current)
       if (!pair.betas.contains(curBeta)) {
         pair.addInPlace(samples.get(curBeta))    
