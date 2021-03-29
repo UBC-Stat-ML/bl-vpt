@@ -14,7 +14,6 @@ import java.util.LinkedHashMap
 import java.util.ArrayList
 import ptgrad.is.FixedSample
 
-import opt.SGD
 import blang.inits.DefaultValue
 import ptgrad.TemperingObjective.ObjectiveType
 import ptgrad.TemperingObjective.Rejection
@@ -22,6 +21,7 @@ import opt.Optimizer
 import blang.inits.GlobalArg
 import blang.inits.experiments.ExperimentResults
 import java.util.Optional
+import opt.AV_SGD
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -40,16 +40,16 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg                  @DefaultValue("Rejection")
   public ObjectiveType objective = new Rejection
   
-  @Arg              @DefaultValue("SGD")
-  public Optimizer optimizer = new SGD 
+  @Arg              @DefaultValue("AV_SGD")
+  public Optimizer optimizer = new AV_SGD 
   
   @Arg                 @DefaultValue("IS")
   public Antithetics antithetics = Antithetics.IS
   
   static enum Antithetics { OFF, IS, MCMC }
   
-  @Arg  @DefaultValue("0.5")
-  public double relativeESSNeighbourhoodThreshold = 0.5
+  @Arg  @DefaultValue("1.0")
+  public double relativeESSNeighbourhoodThreshold = 1.0
   
   @GlobalArg public ExperimentResults results = new ExperimentResults
   

@@ -13,7 +13,7 @@ import static extension xlinear.MatrixExtensions.*
 import blang.inits.Implementations
 import blang.inits.DefaultValue
 
-@Implementations(SGD)
+@Implementations(AV_SGD)
 abstract class Optimizer {
   
   @Arg   @DefaultValue("100")
@@ -21,7 +21,7 @@ abstract class Optimizer {
   
   @GlobalArg public ExperimentResults results = new ExperimentResults
   
-  def DenseMatrix iterate(Objective obj, int iter)
+  def void iterate(Objective obj, int iter)
   
   def void optimize(Objective obj) {
     System::out.indentWithTiming(this.class.simpleName)
@@ -32,7 +32,7 @@ abstract class Optimizer {
         "objective" -> obj.evaluate,
         "gradient" -> obj.gradient.vectorToArray.join(" ")
       )
-      obj.moveTo(iterate(obj, iter))
+      iterate(obj, iter)
     }
     System::out.popIndent
   }
