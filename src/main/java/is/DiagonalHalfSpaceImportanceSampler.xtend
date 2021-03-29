@@ -51,7 +51,6 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
   
   override weightedSum(int weightPower, int functionPower) {
     
-    var Pair<Integer,Integer> dims = 1 -> 1
     
     if (functionPower === 0) {
       val double result = 
@@ -63,7 +62,6 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     val sorted = new TreeMap<CumulativeSum,CumulativeSum>()
     for (sample2 : samples2) {
       val function = G2.apply(sample2)
-      dims = updateDim(dims, 1, function.nCols) 
       val weight = weightFunction2.apply(sample2)
       val current = pow(function, functionPower) * Math::pow(weight, weightPower)
       val key = new CumulativeSum(f2.apply(sample2), current)
@@ -91,7 +89,6 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
         // nothing to do, this first group of terms is killed by the indicator
       } else {
         val function = G1.apply(it)
-        dims = updateDim(dims, 1, function.nCols)
         val weight = weightFunction1.apply(it)
         val current = pow(function, functionPower) * Math::pow(weight, weightPower) * cumsum.cumulativeSum
         if (result === null)
@@ -100,18 +97,13 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
           result += current
       }
     }
-    if (result === null)
-      return dense(dims.key, dims.value) 
+    if (result === null) {
+      val nRows = G1.apply(samples1.head).nRows
+      val nCols = G2.apply(samples2.head).nCols
+      return dense(nRows, nCols) 
+    }
     
     return result
-  }
-  
-  def updateDim(Pair<Integer,Integer> dims, int newRow, int newCol) {
-    val nRows = Math::max(dims.key, newRow)
-    val nCols = Math::max(dims.value, newCol)
-    if (nRows > 1 && nCols > 1)
-      throw new RuntimeException // when exponentiating that would not work
-    return nRows -> nCols
   }
   
   private static class CumulativeSum implements Comparable<CumulativeSum> {

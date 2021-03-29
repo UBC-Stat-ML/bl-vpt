@@ -60,7 +60,7 @@ class TemperingObjective implements Objective {
         val covar = expectedTruncatedGradient(p, i, expectedGradient).estimate                          
         gradientTerms.add(covar)
       }
-      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
+      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1).transpose)
       
       return reject -> gradient
     }

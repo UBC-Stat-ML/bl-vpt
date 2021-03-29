@@ -13,7 +13,7 @@ import static extension xlinear.MatrixExtensions.*
 import blang.inits.Implementations
 import blang.inits.DefaultValue
 
-@Implementations(AV_SGD)
+@Implementations(AV_SGD, Careful_SGD)
 abstract class Optimizer {
   
   @Arg   @DefaultValue("100")

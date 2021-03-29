@@ -20,7 +20,7 @@ import xlinear.AutoDiff
  * One point in a sequence of distributions from a tractable one to 
  * an intractable one.
  */
-@Implementations(ConjugateNormal, ToyNormal)
+@Implementations(ConjugateNormal, ToyNormal, CHRVariational)
 abstract class Interpolation  {
   // variables need to be populated right away at construction time
   new (Map<String,RealVar> variables, Collection<String> parameterComponents) { 
@@ -47,7 +47,7 @@ abstract class Interpolation  {
   // APIs used by the PT sampler
   public val Map<String,RealVar> variables
   def double logDensity(double beta) {
-    logDensity(variationalInputs(0, beta)).value
+    return logDensity(variationalInputs(0, beta)).value
   }
   def DenseMatrix gradient(double beta) {
     val derivStruct = logDensity(variationalInputs(1, beta))

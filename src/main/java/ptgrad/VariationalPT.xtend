@@ -22,6 +22,7 @@ import blang.inits.GlobalArg
 import blang.inits.experiments.ExperimentResults
 import java.util.Optional
 import opt.AV_SGD
+import opt.Careful_SGD
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -40,8 +41,8 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg                  @DefaultValue("Rejection")
   public ObjectiveType objective = new Rejection
   
-  @Arg              @DefaultValue("AV_SGD")
-  public Optimizer optimizer = new AV_SGD 
+  @Arg              @DefaultValue("Careful_SGD")
+  public Optimizer optimizer = new Careful_SGD 
   
   @Arg                 @DefaultValue("IS")
   public Antithetics antithetics = Antithetics.IS
