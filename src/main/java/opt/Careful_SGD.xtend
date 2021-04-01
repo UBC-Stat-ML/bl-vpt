@@ -3,9 +3,7 @@ package opt
 
 import static extension xlinear.MatrixExtensions.*
 
-/**
- * 
- */
+
 class Careful_SGD extends Optimizer {
   
   var Double stepSize = null
@@ -20,6 +18,7 @@ class Careful_SGD extends Optimizer {
     if (newObj > oldObj) {
       obj.moveTo(oldPt)
       stepSize = stepSize / 2.0
+      println("\tstepsize=" + stepSize)
     }
   }
  
