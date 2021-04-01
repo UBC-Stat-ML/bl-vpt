@@ -152,7 +152,7 @@ class TemperingObjective implements Objective {
   def Pair<Double,DenseMatrix> estimate() {
     
     // keep a detailed log
-    val detailedLogs = vpt.results.getTabularWriter("detailedEvaluation").child("evaluation", evaluationIndex++)
+    val detailedLogs = vpt.results.getTabularWriter("stochastic-gradient-evaluations").child("evaluation", evaluationIndex++)
     
     // burn-in a bit
     val tuningSamples = vpt.initSampleLists
@@ -207,11 +207,16 @@ class TemperingObjective implements Objective {
       val term = vpt.objective.compute(pair, tuning)
       detailedLogs.write(
         "chain" -> c,
-        "ess" -> pair.ess,
-        "point" -> vpt.parameters.vectorToArray.join(" "), 
-        "objective" -> term.key,
-        "gradient" -> term.value.vectorToArray.join(" ")
+        "dim" -> -1,
+        "value" -> term.key
       )
+      val grad = term.value
+      for (d : 0 ..< grad.nEntries)
+        detailedLogs.write(
+          "chain" -> c,
+          "dim" -> d,
+          "value" -> grad.get(d)
+        ) 
       objectiveSum += term.key
       gradientSum += term.value
     }
