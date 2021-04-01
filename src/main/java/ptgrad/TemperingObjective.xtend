@@ -82,7 +82,6 @@ class TemperingObjective implements Objective {
       // gradient
       val gradientTerms = new ArrayList<DenseMatrix>(2)
       
-      
       for (i : 1 .. 1) {
         val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate 
         val covar = expectedTruncatedGradient(p, i, expectedGradient).estimate                           
@@ -90,14 +89,12 @@ class TemperingObjective implements Objective {
       }
       
       for (i : 0 .. 0) {
-        val crossTerm = expectedTruncatedCrossGradient(p).estimate                          
-        // NB: term below has expectation zero but acts as a basic control variate
         val expectedGradient = expectedGradient(p.samples.get(1), p.betas.get(0)).estimate 
-        val covar = crossTerm - probabilityOfTrunc * expectedGradient                  
+        val covar = expectedTruncatedCrossGradient(p, expectedGradient).estimate                          
         gradientTerms.add(covar.mul(-1.0) )
       }
       
-      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1))
+      val gradient = -2.0 * (gradientTerms.get(0).transpose + gradientTerms.get(1))
       
       return reject -> gradient
     }

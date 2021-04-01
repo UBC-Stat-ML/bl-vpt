@@ -105,26 +105,16 @@ class TemperingExpectations {
     )
   }
   
-  // E[T grad W_0(X_1) 
-  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedTruncatedCrossGradient(ChainPair it) {
+  // E[T grad W_0(X_1) i.e. as if chainIndex = 0
+  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedTruncatedCrossGradient(ChainPair it, DenseMatrix expectedGradient) {
     val one = ones(1)
     return new DiagonalHalfSpaceImportanceSampler(
       samples.get(0), [s | delta(s, betas)], [one], [weight], 
-      samples.get(1), [s | delta(s, betas)], [Sample s | s.gradient(betas.get(0)).transpose], [weight],
+      samples.get(1), [s | delta(s, betas)], [Sample s | (s.gradient(betas.get(0)) - expectedGradient).transpose], [weight],
       false
     )
   }
-  
-  def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedTruncatedGradientSquare(ChainPair it, int chainIndex) {
-    val one = ones(1)
-    val first  = if (chainIndex === 0) [Sample s | s.gradient(betas.get(chainIndex)).pow(2)] else [one]
-    val second = if (chainIndex === 0) [one] else [Sample s | s.gradient(betas.get(chainIndex)).pow(2).transpose]
-    return new DiagonalHalfSpaceImportanceSampler(
-      samples.get(0), [s | delta(s, betas)], first, [weight], 
-      samples.get(1), [s | delta(s, betas)], second, [weight],
-      false
-    )
-  }
+
   
   /**
    * Computes E[ 1[ acceptRatio > 1 ] ]
