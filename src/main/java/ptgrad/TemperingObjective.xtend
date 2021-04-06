@@ -94,7 +94,7 @@ class TemperingObjective implements Objective {
         gradientTerms.add(covar.mul(-1.0) )
       }
       
-      val gradient = -2.0 * (gradientTerms.get(0).transpose + gradientTerms.get(1))
+      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1)).transpose
       
       return reject -> gradient
     }
