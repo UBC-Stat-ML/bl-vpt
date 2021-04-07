@@ -13,9 +13,11 @@ class Careful_SGD extends Optimizer {
       stepSize = Utils::initialStepForNonZeroObjectives(obj)
     val oldPt = obj.currentPoint.copy
     val oldObj = obj.evaluate
-    obj.moveTo(obj.currentPoint - stepSize * obj.gradient)
+    
+    val grad = obj.gradient
+    obj.moveTo(obj.currentPoint - stepSize * grad)
     val newObj = obj.evaluate
-    if (newObj > oldObj) {
+    if (!(newObj < oldObj)) {
       obj.moveTo(oldPt)
       stepSize = stepSize / 2.0
       println("\tstepsize=" + stepSize)

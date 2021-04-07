@@ -39,7 +39,10 @@ class CHRVariational extends Interpolation {
   @SkipDependency(isMutable = true)
   val List<LogScaleFactor> target
   
-  static enum Type { MEAN, LOG_VARIANCE }
+  static enum Type { 
+    MEAN, 
+    SOFTPLUS_VARIANCE  // variance of the variational component = log ( 1 + e^(unconstrained parameter) )
+  }
   
   def static String paramName(String variable, Type t) {
     return variable + "_" + t
@@ -73,9 +76,9 @@ class CHRVariational extends Interpolation {
     var variationalLogDensity = constant(0.0)
     for (variableName : variables.keySet) {
       val meanParam = param(params, variableName, Type::MEAN)
-      val logVarianceParam = param(params, variableName, Type::LOG_VARIANCE)
+      val softPlusVarianceParam = param(params, variableName, Type::SOFTPLUS_VARIANCE)
       val sampled = variables.get(variableName).doubleValue
-      variationalLogDensity += logNormalLogDensity(constant(sampled), meanParam, logVarianceParam.exp)
+      variationalLogDensity += logNormalLogDensity(constant(sampled), meanParam, (softPlusVarianceParam.exp).log1p)
     }
     
     // interpolate (direct for now)
@@ -89,11 +92,12 @@ class CHRVariational extends Interpolation {
       val stdNormalSample = random.nextGaussian
       
       val meanParam = param(variableName, Type::MEAN).value
-      val logVarianceParam = param(variableName, Type::LOG_VARIANCE).value
-      val varianceParam = Math::exp(logVarianceParam)
+      val logVarianceParam = param(variableName, Type::SOFTPLUS_VARIANCE).value
+      val varianceParam = Math::log1p(Math::exp(logVarianceParam))
       val sample = Math::exp(meanParam + Math::sqrt(varianceParam) * stdNormalSample)
       
       val WritableRealVar variable = variables.get(variableName) as WritableRealVar
+      
       variable.set(sample)
     }
   }
