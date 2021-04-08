@@ -20,7 +20,7 @@ import xlinear.AutoDiff
  * One point in a sequence of distributions from a tractable one to 
  * an intractable one.
  */
-@Implementations(ConjugateNormal, ToyNormal, CHRVariational)
+@Implementations(ConjugateNormal, ToyNormal, CHRVariational, Automatic)
 abstract class Interpolation  {
   // variables need to be populated right away at construction time
   new (Map<String,RealVar> variables, Collection<String> parameterComponents) { 

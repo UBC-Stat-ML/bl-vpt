@@ -14,7 +14,7 @@ import blang.inits.Implementations
 import blang.inits.DefaultValue
 import blang.inits.experiments.tabwriters.TabularWriter
 
-@Implementations(AV_SGD, Careful_SGD)
+@Implementations(AV_SGD, SGD)
 abstract class Optimizer {
   
   @Arg   @DefaultValue("100")
@@ -27,8 +27,10 @@ abstract class Optimizer {
   def void optimize(Objective obj) {
     System::out.indentWithTiming(this.class.simpleName)
     for (iter : 0 ..< maxIters) {
+      System::out.indentWithTiming("Iteration(" + (iter+1) + "/" + maxIters + ")");
       print(obj, iter)
       iterate(obj, iter)
+      System::out.popIndent
     }
     print(obj, maxIters)
     System::out.popIndent

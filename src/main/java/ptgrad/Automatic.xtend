@@ -33,12 +33,25 @@ import blang.runtime.SampledModel
 import blang.runtime.SampledModel.SampleWriter
 import blang.runtime.internals.objectgraph.SkipDependency
 import blang.runtime.internals.objectgraph.GraphAnalysis
-import static extension ptgrad.Utils.logDensity;
+import java.util.Collections
+import blang.core.Model
+import blang.runtime.internals.objectgraph.ObjectNode
 
-class CHRVariational extends Interpolation {
-  
+import static extension ptgrad.Utils.logDensity;
+import blang.core.ModelBuilder
+
+class Automatic extends Interpolation 
+{
   @SkipDependency(isMutable = true)
   val List<LogScaleFactor> target
+  
+  val Model m
+ 
+  new(Map<String, RealVar> variables, Collection<String> parameterComponents, List<LogScaleFactor> target, Model m) {
+    super(variables, parameterComponents)
+    this.target = target
+    this.m = m
+  }
   
   def DerivativeStructure param(List<DerivativeStructure> it, String variable, VariationalParameterType t) { 
     get(t.paramName(variable))
@@ -83,33 +96,38 @@ class CHRVariational extends Interpolation {
     }
   }
   
-  new (Map<String,RealVar> variables, Collection<String> parameterComponents, List<LogScaleFactor> target) { 
-    super(variables, parameterComponents)
-    this.target = target
-  }
-  
   @DesignatedConstructor
-  def static CHRVariational build() {
-    val model = loadModel()
-    val variables = variables(model)
-    val analysis = new GraphAnalysis(model)
-    val target = analysis.factorsDefinedBy(model).filter(LogScaleFactor).toList
-    return new CHRVariational(variables, Utils.parameterComponents(variables.keySet), target)
+  def static Automatic build(@ConstructorArg("target") ModelBuilder builder) {
+    val m = builder.build
+    val analysis = new GraphAnalysis(m)
+    val variables = variables(analysis)
+    val target = analysis.factorsDefinedBy(m).filter(LogScaleFactor).toList
+    return new Automatic(variables, Utils.parameterComponents(variables.keySet), target, m)
   }
   
-  
-  
-  def static CollapsedHierarchicalRockets loadModel() {
-    val runner = Runner::create(new File(""),
-      "--model", "ptgrad.CollapsedHierarchicalRockets", 
-      "--model.data", "data/failure_counts.csv")
-    return runner.model as CollapsedHierarchicalRockets
-  }
-  
-  def static Map<String,RealVar> variables(CollapsedHierarchicalRockets target) {
-    val result = new LinkedHashMap
-    result.put("a", target.a)
-    result.put("b", target.b)
+  def static Map<String, RealVar> variables(GraphAnalysis analysis) {
+    val named = new SampledModel(analysis).objectsToOutput
+    val inverseNamed = new LinkedHashMap<Object, String>
+    for (entry : named.entrySet)
+      if (inverseNamed.containsKey(entry.value)) throw new RuntimeException
+      else
+        inverseNamed.put(entry.value, entry.key)
+    
+    var i = 0
+    val result = new LinkedHashMap<String,RealVar>
+    for (node : analysis.latentVariables) {
+      if (node instanceof ObjectNode) {
+        val variable = node.object
+        if (variable instanceof RealVar) {
+          val name = 
+            if (inverseNamed.containsKey(variable)) 
+              inverseNamed.get(variable)
+            else
+              "" + "id_" + i++
+          result.put(name, variable)
+        } else throw new RuntimeException
+      } else throw new RuntimeException
+    }
     return result
   }
 }

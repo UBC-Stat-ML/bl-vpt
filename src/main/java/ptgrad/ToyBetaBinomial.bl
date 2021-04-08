@@ -1,0 +1,18 @@
+package ptgrad
+
+model ToyBetaBinomial {
+  
+  param Double alpha ?: 2.0
+  param Double beta ?: 1.0
+  param Integer n ?: 80
+  
+  random RealVar parameter ?: latentReal
+  random IntVar observation ?: 60
+  
+  laws {
+    
+    parameter | alpha, beta ~ Beta(alpha, beta)
+    observation | parameter, n ~ Binomial(n, parameter)
+    
+  }
+}
