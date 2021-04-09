@@ -1,0 +1,17 @@
+package ptgrad
+
+model ToyBinomial {
+  
+
+  param Integer n ?: 80
+  
+  random RealVar parameter ?: latentReal
+  random IntVar observation ?: 40
+  
+  laws {
+    
+    parameter ~ Normal(0.0, 1.0) 
+    observation | parameter, n ~ Binomial(n, logistic(parameter))
+    
+  }
+}

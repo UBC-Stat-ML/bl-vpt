@@ -12,7 +12,7 @@ abstract class Schedule {
   def double nextScaled(double initialScale) {
     val result = next(i++) * initialScale
     blang.System.out.println('''stepsize [ value=«result» type=«this.class.simpleName» ]''')
-    return next(i++)
+    return result
   }
   
 }

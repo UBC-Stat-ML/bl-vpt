@@ -72,7 +72,7 @@ class Automatic extends Interpolation
       val meanParam = param(params, variableName, VariationalParameterType::MEAN)
       val softPlusVarianceParam = param(params, variableName, VariationalParameterType::SOFTPLUS_VARIANCE)
       val sampled = variables.get(variableName).doubleValue
-      variationalLogDensity += logNormalLogDensity(constant(sampled), meanParam, (softPlusVarianceParam.exp).log1p)
+      variationalLogDensity += normalLogDensity(constant(sampled), meanParam, (softPlusVarianceParam.exp).log1p)
     }
     
     // interpolate (direct for now)
@@ -83,15 +83,11 @@ class Automatic extends Interpolation
   
   override sample(Random random, List<DerivativeStructure> it) {
     for (variableName : variables.keySet) {
-      val stdNormalSample = random.nextGaussian
-      
       val meanParam = param(variableName, VariationalParameterType::MEAN).value
       val logVarianceParam = param(variableName, VariationalParameterType::SOFTPLUS_VARIANCE).value
       val varianceParam = Math::log1p(Math::exp(logVarianceParam))
-      val sample = Math::exp(meanParam + Math::sqrt(varianceParam) * stdNormalSample)
-      
+      val sample = Generators::normal(random, meanParam, varianceParam)
       val WritableRealVar variable = variables.get(variableName) as WritableRealVar
-      
       variable.set(sample)
     }
   }
