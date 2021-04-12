@@ -15,7 +15,6 @@ import java.util.ArrayList
 import ptgrad.is.FixedSample
 
 import blang.inits.DefaultValue
-import ptgrad.TemperingObjective.ObjectiveType
 import ptgrad.TemperingObjective.Rejection
 import opt.Optimizer
 import blang.inits.GlobalArg
@@ -23,6 +22,7 @@ import blang.inits.experiments.ExperimentResults
 import java.util.Optional
 import opt.AV_SGD
 import opt.SGD
+import ptgrad.TemperingObjective.ObjectiveType
 
 class VariationalPT implements PosteriorInferenceEngine {
   

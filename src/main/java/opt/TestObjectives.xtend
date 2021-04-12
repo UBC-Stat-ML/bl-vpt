@@ -14,6 +14,7 @@ import blang.distributions.Normal
 import static blang.types.StaticUtils.*
 import blang.types.StaticUtils
 import xlinear.MatrixOperations
+import java.util.Collections
 
 class TestObjectives {
   
@@ -68,8 +69,14 @@ class TestObjectives {
         grad.set(i, grad.get(i) + gradNoise.sample(rand))
       return grad
     }
-
     
+    override monitors() {
+      Collections.emptyMap
+    }
+    
+    override description() {
+      "Toy"
+    }
   }
   
 }

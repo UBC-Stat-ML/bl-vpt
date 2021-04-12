@@ -15,6 +15,12 @@ import static extension xlinear.MatrixExtensions.*
 import java.util.Map
 import java.util.List
 import ptgrad.is.Sample
+import java.util.Collection
+import java.util.LinkedHashMap
+import java.util.Set
+import java.util.LinkedHashSet
+import java.util.Arrays
+import java.util.Collections
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -26,15 +32,29 @@ class TemperingObjective implements Objective {
   
   var double currentPoint
   var DenseMatrix currentGradient
+  var Map<String,Double> monitors
   var evaluationIndex = 0
   
   override moveTo(DenseMatrix updatedParameter) {
     vpt.parameters.setTo(updatedParameter)
     // recompute statistics
-    val pointGradientPair = estimate()
+    val allEstimates = estimate(objectiveTypes)
+    val pointGradientPair = allEstimates.get(vpt.objective)
     currentPoint = pointGradientPair.key
     currentGradient = pointGradientPair.value
+    
+    monitors = allEstimates.entrySet.filter[it !== vpt.objective].toMap([key.class.simpleName], [value.key])
   }
+  
+  override monitors() {
+    return monitors
+  }
+  
+  def Set<ObjectiveType> objectiveTypes() {
+    new LinkedHashSet(Arrays.asList(vpt.objective, new Rejection, new Inef))
+  }
+  
+  override description() { vpt.objective.class.simpleName }
   
   @Implementations(Rejection, SKL, SqrtHalfSKL, Inef, ApproxRejection) 
   static interface ObjectiveType {
@@ -145,8 +165,13 @@ class TemperingObjective implements Objective {
     }
     
   }
-    
+  
   def Pair<Double,DenseMatrix> estimate() {
+    val key = vpt.objective
+    return estimate(Collections.singletonList(key)).get(key)
+  }
+    
+  def Map<ObjectiveType,Pair<Double,DenseMatrix>> estimate(Collection<ObjectiveType> objectives) {
     
     // keep a detailed log
     val detailedLogs = vpt.results.getTabularWriter("stochastic-gradient-evaluations").child("evaluation", evaluationIndex++)
@@ -173,52 +198,59 @@ class TemperingObjective implements Objective {
     }
     
     // compute importance sampling estimators
-    var objectiveSum = 0.0
-    var gradientSum = MatrixOperations::dense(vpt.parameters.nEntries)
-    val betas = vpt.betas()
-    for (int c : 0 ..< (nChains - 1)) {
-      val beta0 = betas.get(c)
-      val beta1 = betas.get(c + 1)
-      var pair = new ChainPair(#[beta0, beta1], #[new ArrayList(samples.get(beta0)), new ArrayList(samples.get(beta1))])
-      var tuning = new ChainPair(#[beta0, beta1], #[new ArrayList(tuningSamples.get(beta0)), new ArrayList(tuningSamples.get(beta1))])
-      
-      if (vpt.antithetics == Antithetics.OFF) {}
-      else if (vpt.antithetics == Antithetics.IS) {
+    val result = new LinkedHashMap<ObjectiveType,Pair<Double,DenseMatrix>>
+    for (objectiveType : objectives) {
+      var objectiveSum = 0.0
+      var gradientSum = MatrixOperations::dense(vpt.parameters.nEntries)
+      val betas = vpt.betas()
+      for (int c : 0 ..< (nChains - 1)) {
+        val beta0 = betas.get(c)
+        val beta1 = betas.get(c + 1)
+        var pair = new ChainPair(#[beta0, beta1], #[new ArrayList(samples.get(beta0)), new ArrayList(samples.get(beta1))])
+        var tuning = new ChainPair(#[beta0, beta1], #[new ArrayList(tuningSamples.get(beta0)), new ArrayList(tuningSamples.get(beta1))])
         
-        // do this before
-        val antitMain = pair.antitheticSamples
-        val antitTuning = tuning.antitheticSamples
+        if (vpt.antithetics == Antithetics.OFF) {}
+        else if (vpt.antithetics == Antithetics.IS) {
+          
+          // do this before
+          val antitMain = pair.antitheticSamples
+          val antitTuning = tuning.antitheticSamples
+          
+          addNeighbours(samples, vpt.betas, antitMain, c)
+          addNeighbours(tuningSamples, vpt.betas, antitTuning, c)
+          
+          pair.addInPlace(antitMain)
+          tuning.addInPlace(antitTuning)
+          
+          
+        } else if (vpt.antithetics == Antithetics.MCMC) {
+          pair = pair.addMCMCAntitheticSamples(vpt.pt.random)
+          tuning = tuning.addMCMCAntitheticSamples(vpt.pt.random)
+        } else throw new RuntimeException
         
-        addNeighbours(samples, vpt.betas, antitMain, c)
-        addNeighbours(tuningSamples, vpt.betas, antitTuning, c)
-        
-        pair.addInPlace(antitMain)
-        tuning.addInPlace(antitTuning)
-        
-        
-      } else if (vpt.antithetics == Antithetics.MCMC) {
-        pair = pair.addMCMCAntitheticSamples(vpt.pt.random)
-        tuning = tuning.addMCMCAntitheticSamples(vpt.pt.random)
-      } else throw new RuntimeException
-      
-      val term = vpt.objective.compute(pair, tuning)
-      detailedLogs.write(
-        "chain" -> c,
-        "dim" -> -1,
-        "value" -> term.key
-      )
-      val grad = term.value
-      for (d : 0 ..< grad.nEntries)
+        val term = objectiveType.compute(pair, tuning)
         detailedLogs.write(
           "chain" -> c,
-          "dim" -> d,
-          "value" -> grad.get(d)
-        ) 
-      objectiveSum += term.key
-      gradientSum += term.value
+          "objectiveType" -> objectiveType.class.simpleName, 
+          "dim" -> -1,
+          "value" -> term.key
+        )
+        val grad = term.value
+        for (d : 0 ..< grad.nEntries)
+          detailedLogs.write(
+            "chain" -> c,
+            "objectiveType" -> objectiveType.class.simpleName,
+            "dim" -> d,
+            "value" -> grad.get(d)
+          ) 
+        objectiveSum += term.key
+        gradientSum += term.value
+      }
+      
+      result.put(objectiveType, (objectiveSum -> gradientSum))
     }
     
-    return objectiveSum -> gradientSum
+    return result
   }
   
   def addNeighbours(Map<Double, List<Sample>> samples, List<Double> betas, ChainPair pair, int _chain) {

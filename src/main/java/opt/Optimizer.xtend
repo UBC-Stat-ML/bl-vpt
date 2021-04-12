@@ -9,6 +9,8 @@ import blang.System;
 import blang.engines.internals.factories.PT.MonitoringOutput
 import blang.engines.internals.factories.PT.Column
 
+import static opt.Optimizer.Files.*
+import static opt.Optimizer.Fields.*
 
 import static extension xlinear.MatrixExtensions.*
 import blang.inits.Implementations
@@ -16,6 +18,7 @@ import blang.inits.DefaultValue
 import blang.inits.experiments.tabwriters.TabularWriter
 import  static blang.inits.experiments.tabwriters.TidySerializer.VALUE
 import briefj.Indexer
+import java.util.LinkedHashMap
 
 @Implementations(AV_SGD, SGD, Adam)
 abstract class Optimizer {
@@ -36,43 +39,58 @@ abstract class Optimizer {
   
   def void optimize(Objective obj) {
     System::out.indentWithTiming(this.class.simpleName)
+    
+    System::out.indentWithTiming("Initialization");
+    print(obj, 0, null)
+    var DenseMatrix previous = obj.currentPoint.copy
+    System::out.popIndent
     for (iter : 0 ..< maxIters) {
       System::out.indentWithTiming("Iteration(" + (iter+1) + "/" + maxIters + ")");
-      print(obj, iter)
       iterate(obj, iter)
+      print(obj, iter+1, previous) 
       System::out.popIndent
+      previous = obj.currentPoint.copy
     }
-    print(obj, maxIters)
     System::out.popIndent
   }
   
-  def void print(Objective obj, int iter) {
-    writer("optimization", iter).printAndWrite(
-      VALUE -> obj.evaluate
-    )
-    writer("optimization-estimators", iter) => [
-      write(
-        "dim" -> -1, 
-        NAME -> "objective",
-        VALUE -> obj.evaluate
-      )
+  def void print(Objective obj, int iter, DenseMatrix previous) {
+    
+    writer(optimization, iter).printAndWrite(VALUE -> obj.evaluate)
+    
+    val monitors = new LinkedHashMap(obj.monitors)
+    
+    monitors.put(obj.description, obj.evaluate)
+    writer(optimizationMonitoring, iter) => [
+      for (entry : monitors.entrySet)
+        printAndWrite(
+          name -> entry.key, 
+          VALUE -> entry.value)
+    ]
+    
+    writer(optimizationGradient, iter) => [
       val gradient = obj.gradient
       for (d : 0 ..< gradient.nEntries)
         write(
-          "dim" -> d,
-          NAME -> name(d),
+          dim -> d,
+          name -> name(d),
           VALUE -> gradient.get(d)
         )
     ]
-    writer("optimization-path", iter) => [
+    writer(optimizationPath, iter) => [
       val point = obj.currentPoint
       for (d : 0 ..< point.nEntries)
         write(
-          "dim" -> d,
-          NAME -> name(d),
-          "value" -> point.get(d)
+          dim -> d,
+          name -> name(d),
+          VALUE -> point.get(d)
         )
     ]
+    
+    if (previous !== null) {
+      val delta = obj.currentPoint - previous
+      writer(deltaNorm, iter).printAndWrite(VALUE -> delta.norm)
+    }
   }
   
   def String name(int d) {
@@ -80,11 +98,12 @@ abstract class Optimizer {
     else return indexer.i2o(d) 
   }
   
-  public static final String ITER = "iter"
-  public static final String NAME = "name"
+  static enum Fields { iter, name, dim }
   
-  def TabularWriter writer(String name, int iter) { 
-    return results.getTabularWriter(name).child(ITER, iter).child("isFinal", iter === maxIters)
+  static enum Files { optimization, optimizationMonitoring, optimizationGradient, optimizationPath, deltaNorm }
+  
+  def TabularWriter writer(Files name, int iterIndex) { 
+    return results.getTabularWriter(name.toString).child(iter, iterIndex).child("isFinal", iterIndex === maxIters)
   }
   
 }
