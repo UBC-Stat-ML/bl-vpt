@@ -9,13 +9,23 @@ import blang.System;
 import blang.engines.internals.factories.PT.MonitoringOutput
 import blang.engines.internals.factories.PT.Column
 
+
 import static extension xlinear.MatrixExtensions.*
 import blang.inits.Implementations
 import blang.inits.DefaultValue
 import blang.inits.experiments.tabwriters.TabularWriter
+import  static blang.inits.experiments.tabwriters.TidySerializer.VALUE
+import briefj.Indexer
 
-@Implementations(AV_SGD, SGD)
+@Implementations(AV_SGD, SGD, Adam)
 abstract class Optimizer {
+  
+  Indexer<String> indexer = null
+  
+  def void setIndexer(Indexer<String> indexer) {
+    if (this.indexer !== null) throw new RuntimeException
+    this.indexer = indexer
+  }
   
   @Arg   @DefaultValue("100")
   public int maxIters = 100
@@ -38,18 +48,20 @@ abstract class Optimizer {
   
   def void print(Objective obj, int iter) {
     writer("optimization", iter).printAndWrite(
-      "objective" -> obj.evaluate
+      VALUE -> obj.evaluate
     )
     writer("optimization-estimators", iter) => [
       write(
         "dim" -> -1, 
-        "value" -> obj.evaluate
+        NAME -> "objective",
+        VALUE -> obj.evaluate
       )
       val gradient = obj.gradient
       for (d : 0 ..< gradient.nEntries)
         write(
           "dim" -> d,
-          "value" -> gradient.get(d)
+          NAME -> name(d),
+          VALUE -> gradient.get(d)
         )
     ]
     writer("optimization-path", iter) => [
@@ -57,13 +69,22 @@ abstract class Optimizer {
       for (d : 0 ..< point.nEntries)
         write(
           "dim" -> d,
+          NAME -> name(d),
           "value" -> point.get(d)
         )
     ]
   }
   
+  def String name(int d) {
+    if (indexer === null) return "NA"
+    else return indexer.i2o(d) 
+  }
+  
+  public static final String ITER = "iter"
+  public static final String NAME = "name"
+  
   def TabularWriter writer(String name, int iter) { 
-    return results.getTabularWriter(name).child("iter", iter).child("isFinal", iter === maxIters)
+    return results.getTabularWriter(name).child(ITER, iter).child("isFinal", iter === maxIters)
   }
   
 }

@@ -66,7 +66,8 @@ class VariationalPT implements PosteriorInferenceEngine {
   override performInference() {
     pt.performInference
     if (optimize) {
-      val objective = new TemperingObjective(this)  
+      val objective = new TemperingObjective(this) 
+      optimizer.indexer = model(0).parameterComponents
       optimizer.optimize(objective)
     }
   }

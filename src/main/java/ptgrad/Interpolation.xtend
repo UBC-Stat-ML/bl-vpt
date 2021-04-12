@@ -32,7 +32,7 @@ abstract class Interpolation  {
   
   // ("variational") parameters
   @SkipDependency(isMutable = false)
-  val Indexer<String> parameterComponents
+  public val Indexer<String> parameterComponents
   
   @SkipDependency(isMutable = false)
   public var DenseMatrix parameters
