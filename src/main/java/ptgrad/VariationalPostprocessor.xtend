@@ -31,13 +31,17 @@ class VariationalPostprocessor extends DefaultPostProcessor {
       
       data <- read.csv("«trace.absolutePath»")
       
+      verticalSize <- «facetHeight» * length(unique(data$«name»)) 
+      horizontalSize <- «facetWidth»
+            
+      
       p <- ggplot(data, aes(x = «iter», y = «TidySerializer::VALUE»)) +
               geom_point(size = 0.1) + geom_line(alpha = 0.5) + 
               facet_grid(«name» ~., scales = "free_y") +
               theme_bw() + 
               xlab("Optimization iteration") 
               
-      ggsave("«outputFile.absolutePath»")
+      ggsave("«outputFile.absolutePath»", limitsize = F, height = verticalSize, width = horizontalSize)
     ''')
   }
 

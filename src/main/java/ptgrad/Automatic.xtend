@@ -39,6 +39,7 @@ import blang.runtime.internals.objectgraph.ObjectNode
 
 import static extension ptgrad.Utils.logDensity;
 import blang.core.ModelBuilder
+import blang.runtime.Observations
 
 class Automatic extends Interpolation 
 {
@@ -93,9 +94,9 @@ class Automatic extends Interpolation
   }
   
   @DesignatedConstructor
-  def static Automatic build(@ConstructorArg("target") ModelBuilder builder) {
+  def static Automatic build(@ConstructorArg("target") ModelBuilder builder, @ConstructorArg("treatNaNAsNegativeInfinity") @DefaultValue("false") boolean treatNaNAsNegativeInfinity) {
     val m = builder.build
-    val analysis = new GraphAnalysis(m)
+    val analysis = new GraphAnalysis(m, new Observations, treatNaNAsNegativeInfinity, true)
     val variables = variables(analysis)
     val target = analysis.factorsDefinedBy(m).filter(LogScaleFactor).toList
     return new Automatic(variables, Utils.parameterComponents(variables.keySet), target, m)
