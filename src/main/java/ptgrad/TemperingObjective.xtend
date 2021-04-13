@@ -231,20 +231,25 @@ class TemperingObjective implements Objective {
         } else throw new RuntimeException
         
         val term = objectiveType.compute(pair, tuning)
-        detailedLogs.write(
-          "chain" -> c,
-          "objectiveType" -> objectiveType.class.simpleName, 
-          "dim" -> -1,
-          "value" -> term.key
-        )
-        val grad = term.value
-        for (d : 0 ..< grad.nEntries)
+        
+        if (vpt.detailedGradientInfo) {
           detailedLogs.write(
             "chain" -> c,
-            "objectiveType" -> objectiveType.class.simpleName,
-            "dim" -> d,
-            "value" -> grad.get(d)
-          ) 
+            "objectiveType" -> objectiveType.class.simpleName, 
+            "dim" -> -1,
+            "value" -> term.key
+          )
+          val grad = term.value
+          for (d : 0 ..< grad.nEntries)
+            detailedLogs.write(
+              "chain" -> c,
+              "objectiveType" -> objectiveType.class.simpleName,
+              "dim" -> d,
+              "value" -> grad.get(d)
+            ) 
+            
+        }
+          
         objectiveSum += term.key
         gradientSum += term.value
       }

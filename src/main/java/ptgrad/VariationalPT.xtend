@@ -44,6 +44,9 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg              @DefaultValue("SGD")
   public Optimizer optimizer = new SGD 
   
+  @Arg                   @DefaultValue("false")
+  public boolean detailedGradientInfo = false
+  
   @Arg                 @DefaultValue("IS")
   public Antithetics antithetics = Antithetics.IS
   
