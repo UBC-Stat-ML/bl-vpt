@@ -43,7 +43,9 @@ class TemperingObjective implements Objective {
     currentPoint = pointGradientPair.key
     currentGradient = pointGradientPair.value
     
-    monitors = allEstimates.entrySet.filter[it !== vpt.objective].toMap([key.class.simpleName], [value.key])
+    monitors = new LinkedHashMap(allEstimates.entrySet.filter[it !== vpt.objective].toMap([key.class.simpleName], [value.key]))
+    val ineff = monitors.get(Inef.simpleName)
+    monitors.put("RoundTripRate", 1.0 / (2.0 + ineff))
   }
   
   override monitors() {
