@@ -18,14 +18,34 @@ class VariationalPostprocessor extends DefaultPostProcessor {
     for (file : #[optimizationMonitoring, optimizationPath, optimizationGradient])
       plotTrace(csvFile(results.resultsFolder, file.toString))
       
+    plotStdErrs()
+      
     super.run
   }
   
+  def void plotStdErrs() {
+    val trace = csvFile(results.resultsFolder, optimization.toString)
+    val baseName = TidySerializer::serializerName(trace)
+    val outputFile = new File(results.resultsFolder, "standardErrors.pdf")
+    callR(new File(results.resultsFolder, "." + baseName + ".r"), '''
+      require("ggplot2")
+      require("dplyr")
+      
+      data <- read.csv("«trace.absolutePath»")
+      
+      p <- ggplot(data, aes(x = «iter», y = «stderr»)) +
+              geom_point(size = 0.1) + geom_line(alpha = 0.5) + 
+              theme_bw() + 
+              xlab("Optimization iteration") 
+                    
+      ggsave("«outputFile.absolutePath»")
+    ''')
+  }
 
   def plotTrace(File trace) {
     val baseName = TidySerializer::serializerName(trace)
     val outputFile = new File(trace.parent, baseName + ".pdf")
-    callR(null, '''
+    callR(new File(results.resultsFolder, "." + baseName + ".r"), '''
       require("ggplot2")
       require("dplyr")
       

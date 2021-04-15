@@ -32,7 +32,7 @@ class TemperingObjective implements Objective {
   
   new(VariationalPT vpt) { 
     this.vpt = vpt
-    moveTo(vpt.parameters.copy) // force initial recompute
+    moveTo(vpt.parameters) // force initial recompute
   }
   
   var double currentPoint
@@ -42,7 +42,8 @@ class TemperingObjective implements Objective {
   var evaluationIndex = 0
   
   override moveTo(DenseMatrix updatedParameter) {
-    vpt.parameters.setTo(updatedParameter)
+    if (vpt.parameters !== updatedParameter)
+      vpt.parameters.setTo(updatedParameter)
     // recompute statistics
     val allEstimates = estimate(objectiveTypes)
     val pointGradientPair = allEstimates.get(vpt.objective)
