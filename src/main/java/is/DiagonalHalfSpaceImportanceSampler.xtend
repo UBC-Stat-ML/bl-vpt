@@ -13,6 +13,8 @@ import briefj.BriefIO
 import briefj.BriefLog
 import java.util.TreeMap
 
+import static extension java.lang.Math.*
+
 /**
    * 
    * samples1 = {(f1_i, G1_i)}
@@ -41,12 +43,8 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
   
   val boolean strict
   
-  def DenseMatrix pow(DenseMatrix m, int p) {
-    return m.copy => [editInPlace[_arg1, _arg2, v|Math::pow(v, p)]]
-  }
-  
   private static def <T> double weightedSum(Iterable<T> samples, (T)=>Double weightFunction, int weightPower) {
-    return samples.map[Math::pow(weightFunction.apply(it), weightPower)].reduce[x,y|x+y]
+    return samples.map[pow(weightFunction.apply(it), weightPower)].reduce[x,y|x+y]
   }
   
   override weightedSum(int weightPower, int functionPower) {
@@ -63,7 +61,7 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     for (sample2 : samples2) {
       val function = G2.apply(sample2)
       val weight = weightFunction2.apply(sample2)
-      val current = pow(function, functionPower) * Math::pow(weight, weightPower)
+      val current = function.pointwise[pow(functionPower)] * pow(weight, weightPower)
       val key = new CumulativeSum(f2.apply(sample2), current)
       if (sorted.containsKey(key)) sorted.get(key).entry += current
       else sorted.put(key, key)
@@ -90,7 +88,7 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
       } else {
         val function = G1.apply(it)
         val weight = weightFunction1.apply(it)
-        val current = pow(function, functionPower) * Math::pow(weight, weightPower) * cumsum.cumulativeSum
+        val current = function.pointwise[pow(functionPower)] * pow(weight, weightPower) * cumsum.cumulativeSum
         if (result === null)
           result = current
         else
@@ -162,7 +160,7 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
   }
   
   def DenseMatrix varianceEstimate() {
-    val meanSq = estimate => [editInPlace[_arg1, _arg2, v|v*v]]
+    val meanSq = estimate.pointwise[pow(2)]
     return estimate(2) - meanSq
   }
   
@@ -173,10 +171,7 @@ class DiagonalHalfSpaceImportanceSampler<T1, T2> extends ImportanceSampler  {
     // NB: based on quick simulation in a1e58bea252dde26ba88d31b8b6ce39fe63996e8
     val varEstimate = varianceEstimate
     val ess = ess()
-    val result = dense(varianceEstimate.nEntries)
-    for (i : 0 ..< varEstimate.nEntries)
-      result.set(i, Math::sqrt(varEstimate.get(i)/ess))
-    return result
+    return varEstimate.pointwise[sqrt(it/ess)]
   }
   
   def static void main(String [] args) {

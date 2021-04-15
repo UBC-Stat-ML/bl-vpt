@@ -5,6 +5,8 @@ import xlinear.DenseMatrix
 import static xlinear.MatrixOperations.*
 import static extension xlinear.MatrixExtensions.*
 
+import static extension java.lang.Math.*
+
 abstract class ImportanceSampler {
   def DenseMatrix weightedSum(int weightPower, int functionPower)
   
@@ -23,17 +25,17 @@ abstract class ImportanceSampler {
   def DenseMatrix estimate() { estimate(1) }
   
   def DenseMatrix standardError() {
-    val estimate = estimate
-
+    val estimate = estimate()
+    val w22 = weightedSum(2, 2)
+    val w21 = weightedSum(2, 1)
+    val sumSqWeights = sumSqWeights()
+    val sumW2 = sumWeights.pow(2)
     // See Owen, IS chapter, p.9, https://statweb.stanford.edu/~owen/mc/Ch-var-is.pdf
-    val varianceEstimate = (weightedSum(2, 2) - 2.0 * estimate * weightedSum(2, 1) + estimate * estimate * sumSqWeights) / Math::pow(sumWeights, 2)
-    val result = dense(varianceEstimate.nEntries)
-    for (i : 0 ..< result.nEntries)
-      result.set(i, Math::sqrt(varianceEstimate.get(i)))
-    return result
+    estimate.editInPlace[r, c, est|sqrt((w22.get(r,c) - 2.0 * est * w21.get(r,c) + est.pow(2) * sumSqWeights) / sumW2)]
+    return estimate
   }
   
   def double ess() {
-    return Math::pow(sumWeights, 2) / sumSqWeights
+    return pow(sumWeights, 2) / sumSqWeights
   }
 }

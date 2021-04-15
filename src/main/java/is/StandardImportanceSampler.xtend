@@ -9,6 +9,8 @@ import static extension xlinear.MatrixExtensions.*
 import java.util.List
 import java.util.ArrayList
 
+import static extension java.lang.Math.*
+
 @Data
 class StandardImportanceSampler<T> extends ImportanceSampler {
   
@@ -25,7 +27,7 @@ class StandardImportanceSampler<T> extends ImportanceSampler {
         result = dense(if (functionPower === 0) 1 else point.nEntries)
       }
       for (i : 0 ..< result.nEntries) {
-        result.set(i, result.get(i) + Math::pow(weight, weightPower) * Math::pow(point.get(i), functionPower))
+        result.set(i, result.get(i) + pow(weight, weightPower) * pow(point.get(i), functionPower))
       }
     }
     return result

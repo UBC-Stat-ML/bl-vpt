@@ -5,15 +5,11 @@ import java.util.List
 import is.StandardImportanceSampler
 import is.DiagonalHalfSpaceImportanceSampler
 import xlinear.DenseMatrix
-import xlinear.MatrixOperations
 import static extension java.lang.Math.*
 
 import static xlinear.MatrixOperations.*
 
 import static extension xlinear.MatrixExtensions.*
-import blang.runtime.Runner
-import blang.inits.experiments.tabwriters.TabularWriter
-import org.eclipse.xtend.lib.annotations.Data
 
 class TemperingExpectations {
   
@@ -44,7 +40,7 @@ class TemperingExpectations {
   def static ImportanceSampler expectedDelta(List<Sample> samples, List<Double> betas) {
     return new StandardImportanceSampler(
       samples, 
-      [delta(betas).toMtx],
+      [delta(betas).asMatrix],
       [weight]
     ) 
   }
@@ -85,8 +81,8 @@ class TemperingExpectations {
    */
   def static DiagonalHalfSpaceImportanceSampler<Sample,Sample> expectedUntruncatedRatio(ChainPair it) { 
     return new DiagonalHalfSpaceImportanceSampler(
-      samples.get(0), [s | -delta(s, betas)], [s | exp( delta(s, betas)).toMtx], [weight],
-      samples.get(1), [s | -delta(s, betas)], [s | exp(-delta(s, betas)).toMtx], [weight],
+      samples.get(0), [s | -delta(s, betas)], [s | exp( delta(s, betas)).asMatrix], [weight],
+      samples.get(1), [s | -delta(s, betas)], [s | exp(-delta(s, betas)).asMatrix], [weight],
       false
     )
   }
@@ -130,23 +126,5 @@ class TemperingExpectations {
       true
     )
   }
-  
-  /**
-   * Note:
-   * 
-   * acceptanceProbability = min(1, acceptRatio)
-   *                       = 1[ acceptRatio <= 1 ] acceptRatio + 1[ acceptRatio > 1 ] 1.0
-   */
-  
-  def static DenseMatrix toMtx(double x) {
-    val item = newDoubleArrayOfSize(1)
-    item.set(0, x)
-    return MatrixOperations::denseCopy(item)
-  }
-  
-  def static DenseMatrix pow(DenseMatrix x, int power) {
-    val result = x.copy
-    result.editInPlace[r,c,v|Math::pow(v, power)]
-    return result
-  }
+
 }
