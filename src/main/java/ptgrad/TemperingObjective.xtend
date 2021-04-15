@@ -85,14 +85,12 @@ class TemperingObjective implements Objective {
         this.gradient = another.gradient
         
         this.objectiveVariance = another.objectiveVariance
-        //this.gradientVariance = another.gradientVariance
       } else {
         this.objective = this.objective + another.objective 
         this.gradient += another.gradient
         
         if (this.objectiveVariance !== null) {
           this.objectiveVariance = this.objectiveVariance + another.objectiveVariance 
-          //this.gradientVariance += another.gradientVariance
         }
       }
       
@@ -120,7 +118,6 @@ class TemperingObjective implements Objective {
         gradientTerms.add(covar)
       }
       result.gradient = -2.0 * (gradientTerms.get(0).estimate + gradientTerms.get(1).estimate.transpose)
-      //result.gradientVariance = 4.0 * (gradientTerms.get(0).standardError.pointwise[pow(2)] + gradientTerms.get(1).standardError.pointwise[pow(2)])
       
       return result
     }
@@ -156,7 +153,6 @@ class TemperingObjective implements Objective {
       }
       
       result.gradient = -2.0 * (gradientTerms.get(1).estimate - gradientTerms.get(0).estimate).transpose
-      //result.gradientVariance = 4.0 * 
       
       return result
     }
