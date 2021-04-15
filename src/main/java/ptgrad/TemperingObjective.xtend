@@ -25,6 +25,7 @@ import org.eclipse.xtend.lib.annotations.Accessors
 import is.DiagonalHalfSpaceImportanceSampler
 import static extension java.lang.Math.*
 import is.ImportanceSampler
+import java.util.Optional
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -35,6 +36,7 @@ class TemperingObjective implements Objective {
   }
   
   var double currentPoint
+  var Optional<Double> currentPointStdErr
   var DenseMatrix currentGradient
   var Map<String,Double> monitors
   var evaluationIndex = 0
@@ -45,6 +47,7 @@ class TemperingObjective implements Objective {
     val allEstimates = estimate(objectiveTypes)
     val pointGradientPair = allEstimates.get(vpt.objective)
     currentPoint = pointGradientPair.objective
+    currentPointStdErr = pointGradientPair.objectiveStdErr
     currentGradient = pointGradientPair.gradient
     
     monitors = new LinkedHashMap(allEstimates.entrySet.filter[it !== vpt.objective].toMap([key.class.simpleName], [value.objective]))
@@ -73,7 +76,11 @@ class TemperingObjective implements Objective {
     
     // optional
     Double objectiveVariance = null
-    def objectiveStdErr() { return sqrt(objectiveVariance) }
+    
+    def Optional<Double> objectiveStdErr() { 
+      if (objectiveVariance === null) return Optional.empty
+      return Optional.of(sqrt(objectiveVariance))
+    }
     
     // Note: Not computing gradient std err estimates as the estimates do not take into account control variates
 
@@ -348,27 +355,8 @@ class TemperingObjective implements Objective {
     currentGradient
   }
   
-  def static DenseMatrix pointwiseProduct(DenseMatrix m1, DenseMatrix m2) {
-    checkMatch(m1, m2)
-    val copy = MatrixOperations::dense(m1.nRows, m2.nCols)
-    for (r : 0 ..< m1.nRows)
-      for (c : 0 ..< m1.nCols)
-        copy.set(r, c, m1.get(r,c) * m2.get(r,c))
-    return copy
-  }
-  
-  def static DenseMatrix pointwiseDivide(DenseMatrix m1, DenseMatrix m2) {
-    checkMatch(m1, m2)
-    val copy = MatrixOperations::dense(m1.nRows, m2.nCols)
-    for (r : 0 ..< m1.nRows)
-      for (c : 0 ..< m1.nCols)
-        copy.set(r, c, m1.get(r,c) / m2.get(r,c))
-    return copy
-  }
-  
-  def static void checkMatch(DenseMatrix m1, DenseMatrix m2) {
-    if (m1.nRows !== m2.nRows ||  m1.nCols !== m2.nCols)
-      throw new RuntimeException
+  override evaluationStandardError() {
+    currentPointStdErr
   }
   
 }

@@ -15,6 +15,7 @@ import static blang.types.StaticUtils.*
 import blang.types.StaticUtils
 import xlinear.MatrixOperations
 import java.util.Collections
+import java.util.Optional
 
 class TestObjectives {
   
@@ -77,6 +78,11 @@ class TestObjectives {
     override description() {
       "Toy"
     }
+    
+    override evaluationStandardError() {
+      Optional.empty
+    }
+    
   }
   
 }
