@@ -66,8 +66,8 @@ class ToyNormalTest extends Experiment {
         val stats = new LinkedHashMap<String,SummaryStatistics>
         for (i : 0 ..< nOuterMC) {
           val valueGradientPair = objective.estimate
-          BriefMaps::getOrPut(stats, objectiveKey, new SummaryStatistics).addValue(valueGradientPair.key)
-          val gradient = valueGradientPair.value
+          BriefMaps::getOrPut(stats, objectiveKey, new SummaryStatistics).addValue(valueGradientPair.objective)
+          val gradient = valueGradientPair.gradient
           for (c : 0 ..< gradient.nEntries)
             BriefMaps::getOrPut(stats, gradientKey(c), new SummaryStatistics).addValue(gradient.get(c))
         }
@@ -82,13 +82,7 @@ class ToyNormalTest extends Experiment {
           )
         }
     }
-    
-//    val objective = new TemperingObjective(vpt)  
-//    println("obj " + objective.evaluate + " " + PTGradientTest::analyticRejectRate(delta))
-//    
-//    println("grad " + objective.gradient.get(0) + " " + PTGradientTest::analyticRejectGradient(delta))
-    
-
+ 
   }
   
 

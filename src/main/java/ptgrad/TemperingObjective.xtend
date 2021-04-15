@@ -21,6 +21,10 @@ import java.util.Set
 import java.util.LinkedHashSet
 import java.util.Arrays
 import java.util.Collections
+import org.eclipse.xtend.lib.annotations.Accessors
+import is.DiagonalHalfSpaceImportanceSampler
+import static extension java.lang.Math.*
+import is.ImportanceSampler
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -40,10 +44,10 @@ class TemperingObjective implements Objective {
     // recompute statistics
     val allEstimates = estimate(objectiveTypes)
     val pointGradientPair = allEstimates.get(vpt.objective)
-    currentPoint = pointGradientPair.key
-    currentGradient = pointGradientPair.value
+    currentPoint = pointGradientPair.objective
+    currentGradient = pointGradientPair.gradient
     
-    monitors = new LinkedHashMap(allEstimates.entrySet.filter[it !== vpt.objective].toMap([key.class.simpleName], [value.key]))
+    monitors = new LinkedHashMap(allEstimates.entrySet.filter[it !== vpt.objective].toMap([key.class.simpleName], [value.objective]))
     val ineff = monitors.get(Inef.simpleName)
     monitors.put("RoundTripRate", 1.0 / (2.0 + ineff))
   }
@@ -60,31 +64,65 @@ class TemperingObjective implements Objective {
   
   @Implementations(Rejection, SKL, SqrtHalfSKL, Inef, ApproxRejection) 
   static interface ObjectiveType {
-    def Pair<Double,DenseMatrix> compute(ChainPair samples, ChainPair tuningSamples)
+    def ObjectiveEvaluation compute(ChainPair samples, ChainPair tuningSamples)
+  }
+  
+  static class ObjectiveEvaluation {
+    @Accessors(PUBLIC_GETTER) Double objective = null
+    @Accessors(PUBLIC_GETTER) DenseMatrix gradient = null
+    
+    // optional
+    Double objectiveVariance = null
+    def objectiveStdErr() { return sqrt(objectiveVariance) }
+    
+    // Note: Not computing gradient std err estimates as the estimates do not take into account control variates
+
+    def +=(ObjectiveEvaluation another) {
+      if (this.objective === null) {
+        // this takes care of initialization
+        this.objective = another.objective
+        if (this.gradient !== null) throw new RuntimeException
+        this.gradient = another.gradient
+        
+        this.objectiveVariance = another.objectiveVariance
+        //this.gradientVariance = another.gradientVariance
+      } else {
+        this.objective = this.objective + another.objective 
+        this.gradient += another.gradient
+        
+        if (this.objectiveVariance !== null) {
+          this.objectiveVariance = this.objectiveVariance + another.objectiveVariance 
+          //this.gradientVariance += another.gradientVariance
+        }
+      }
+      
+    }
   }
   
   static class Rejection implements ObjectiveType {
         
     override compute(ChainPair p, ChainPair tuningSamples) {
       
-      // in the following, let T = 1[ acceptRatio > 1 ]
-      
+      val result = new ObjectiveEvaluation
+            
       // point
-      val expectedUntruncatedRatio = expectedUntruncatedRatio(p).estimate.get(0) // E[ (1 - T) x acceptRatio ]
-      val probabilityOfTrunc = probabilityOfTruncation(p).estimate.get(0)        // E[ T ]
-      val accept = expectedUntruncatedRatio + probabilityOfTrunc
-      val reject = 1.0 - accept
+      val expectedUntruncatedRatio = expectedUntruncatedRatio(p) 
+      val probabilityOfTrunc = probabilityOfTruncation(p)        
+      val accept = expectedUntruncatedRatio.estimate.doubleValue + probabilityOfTrunc.estimate.doubleValue
+      result.objective = 1.0 - accept
+      result.objectiveVariance = expectedUntruncatedRatio.standardError.doubleValue.pow(2) + probabilityOfTrunc.standardError.doubleValue.pow(2)
       
       // gradient
-      val gradientTerms = new ArrayList<DenseMatrix>(2)
+      val gradientTerms = new ArrayList<DiagonalHalfSpaceImportanceSampler<?,?>>(2)
       for (i : 0 ..< 2) {
         val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate 
-        val covar = expectedTruncatedGradient(p, i, expectedGradient).estimate                          
+        val covar = expectedTruncatedGradient(p, i, expectedGradient)                          
         gradientTerms.add(covar)
       }
-      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1).transpose)
+      result.gradient = -2.0 * (gradientTerms.get(0).estimate + gradientTerms.get(1).estimate.transpose)
+      //result.gradientVariance = 4.0 * (gradientTerms.get(0).standardError.pointwise[pow(2)] + gradientTerms.get(1).standardError.pointwise[pow(2)])
       
-      return reject -> gradient
+      return result
     }
     
   }
@@ -93,32 +131,34 @@ class TemperingObjective implements Objective {
         
     override compute(ChainPair p, ChainPair tuningSamples) {
       
-      // in the following, let T = 1[ acceptRatio > 1 ]
+      val result = new ObjectiveEvaluation
       
       // point
-      val expectedUntruncatedRatio = expectedUntruncatedRatio(p).estimate.get(0) // E[ (1 - T) x acceptRatio ]
-      val probabilityOfTrunc = probabilityOfTruncation(p).estimate.get(0)        // E[ T ]
-      val accept = expectedUntruncatedRatio + probabilityOfTrunc
-      val reject = 1.0 - accept
+      val expectedUntruncatedRatio = expectedUntruncatedRatio(p)
+      val probabilityOfTrunc = probabilityOfTruncation(p)
+      val accept = expectedUntruncatedRatio.estimate.doubleValue + probabilityOfTrunc.estimate.doubleValue
+      result.objective = 1.0 - accept
+      result.objectiveVariance = expectedUntruncatedRatio.standardError.doubleValue.pow(2) + probabilityOfTrunc.standardError.doubleValue.pow(2)
       
       // gradient
-      val gradientTerms = new ArrayList<DenseMatrix>(2)
+      val gradientTerms = new ArrayList<DiagonalHalfSpaceImportanceSampler<?,?>>(2)
       
-      for (i : 1 .. 1) {
+      for (i : #[1]) {
         val expectedGradient = expectedGradient(p.samples.get(i), p.betas.get(i)).estimate 
-        val covar = expectedTruncatedGradient(p, i, expectedGradient).estimate                           
+        val covar = expectedTruncatedGradient(p, i, expectedGradient)                           
         gradientTerms.add(covar)
       }
       
-      for (i : 0 .. 0) {
+      for (i : #[0]) {
         val expectedGradient = expectedGradient(p.samples.get(1), p.betas.get(0)).estimate 
-        val covar = expectedTruncatedCrossGradient(p, expectedGradient).estimate                          
-        gradientTerms.add(covar.mul(-1.0) )
+        val covar = expectedTruncatedCrossGradient(p, expectedGradient)                          
+        gradientTerms.add(covar)
       }
       
-      val gradient = -2.0 * (gradientTerms.get(0) + gradientTerms.get(1)).transpose
+      result.gradient = -2.0 * (gradientTerms.get(1).estimate - gradientTerms.get(0).estimate).transpose
+      //result.gradientVariance = 4.0 * 
       
-      return reject -> gradient
+      return result
     }
     
   }
@@ -128,9 +168,13 @@ class TemperingObjective implements Objective {
     
     override compute(ChainPair p, ChainPair tuningSamples) {
       val rejObj = rej.compute(p, tuningSamples)
-      val r = rejObj.key
+      val r = rejObj.objective
       val s = 1.0 - r
-      return (r/s) -> (rejObj.value / Math::pow(s, 2))
+      
+      val result = new ObjectiveEvaluation
+      result.objective = r/s
+      result.gradient = rejObj.gradient / pow(s, 2)
+      return result
     }
     
   }
@@ -139,41 +183,49 @@ class TemperingObjective implements Objective {
     val SKL skl = new SKL
     override compute(ChainPair p, ChainPair tuningSamples) {
       val sklObj = skl.compute(p, tuningSamples)
-      val obj = if (sklObj.key <= 0.0) 1e-6 else Math::sqrt(0.5 * sklObj.key)
-      return obj -> (sklObj.value / 4.0 / obj)
+      
+      val result = new ObjectiveEvaluation
+      result.objective = if (sklObj.objective <= 1e-6) 1e-6 else Math::sqrt(0.5 * sklObj.objective)
+      result.gradient = sklObj.gradient / 4.0 / result.objective
+      return result
     }
   }
   
   static class SKL implements ObjectiveType {
     
     override compute(ChainPair p, ChainPair tuningSamples) {
-      val objectiveTerms = new ArrayList<Double>(2)
+      val result = new ObjectiveEvaluation
+      val objectiveTerms = new ArrayList<ImportanceSampler>(2)
       val gradientTerms = new ArrayList<DenseMatrix>(2)
       
       for (i : 0 ..< 2) {
         val samples = p.samples.get(i)
         val beta = p.betas.get(i)
-        val expectedDelta = expectedDelta(samples, p.betas).estimate
-        objectiveTerms.add(expectedDelta.doubleValue)
+        val expectedDelta = expectedDelta(samples, p.betas)
+        objectiveTerms.add(expectedDelta)
         
         gradientTerms +=
           expectedGradientTimesDelta(samples, beta, p.betas).estimate -
-          expectedGradient(samples, beta).estimate * expectedDelta +
+          expectedGradient(samples, beta).estimate * expectedDelta.estimate +
           expectedGradientDelta(samples, p.betas).estimate
           
       }
       
-      return (objectiveTerms.get(1) - objectiveTerms.get(0)) -> (gradientTerms.get(1) - gradientTerms.get(0))
+      result.objective = objectiveTerms.get(1).estimate.doubleValue - objectiveTerms.get(0).estimate.doubleValue
+      result.gradient = gradientTerms.get(1) - gradientTerms.get(0)
+      result.objectiveVariance = objectiveTerms.get(1).standardError.doubleValue.pow(2) + objectiveTerms.get(0).standardError.doubleValue.pow(2)
+      
+      return result
     }
     
   }
   
-  def Pair<Double,DenseMatrix> estimate() {
+  def ObjectiveEvaluation estimate() {
     val key = vpt.objective
     return estimate(Collections.singletonList(key)).get(key)
   }
     
-  def Map<ObjectiveType,Pair<Double,DenseMatrix>> estimate(Collection<ObjectiveType> objectives) {
+  def Map<ObjectiveType,ObjectiveEvaluation> estimate(Collection<ObjectiveType> objectives) {
     
     // keep a detailed log
     val detailedLogs = vpt.results.getTabularWriter("stochastic-gradient-evaluations").child("evaluation", evaluationIndex++)
@@ -200,10 +252,9 @@ class TemperingObjective implements Objective {
     }
     
     // compute importance sampling estimators
-    val result = new LinkedHashMap<ObjectiveType,Pair<Double,DenseMatrix>>
+    val result = new LinkedHashMap<ObjectiveType,ObjectiveEvaluation>
     for (objectiveType : objectives) {
-      var objectiveSum = 0.0
-      var gradientSum = MatrixOperations::dense(vpt.parameters.nEntries)
+      val eval = new ObjectiveEvaluation
       val betas = vpt.betas()
       for (int c : 0 ..< (nChains - 1)) {
         val beta0 = betas.get(c)
@@ -237,9 +288,9 @@ class TemperingObjective implements Objective {
             "chain" -> c,
             "objectiveType" -> objectiveType.class.simpleName, 
             "dim" -> -1,
-            "value" -> term.key
+            "value" -> term.objective
           )
-          val grad = term.value
+          val grad = term.gradient
           for (d : 0 ..< grad.nEntries)
             detailedLogs.write(
               "chain" -> c,
@@ -250,11 +301,10 @@ class TemperingObjective implements Objective {
             
         }
           
-        objectiveSum += term.key
-        gradientSum += term.value
+        eval += term
       }
       
-      result.put(objectiveType, (objectiveSum -> gradientSum))
+      result.put(objectiveType, eval)
     }
     
     return result
