@@ -20,9 +20,11 @@ import opt.Optimizer
 import blang.inits.GlobalArg
 import blang.inits.experiments.ExperimentResults
 import java.util.Optional
-import opt.AV_SGD
 import opt.SGD
 import ptgrad.TemperingObjective.ObjectiveType
+import opt.Optimizer.OptimizationFailure
+import static extension xlinear.MatrixExtensions.*
+import static extension blang.types.ExtensionUtils.*
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -46,6 +48,9 @@ class VariationalPT implements PosteriorInferenceEngine {
   
   @Arg                   @DefaultValue("false")
   public boolean detailedGradientInfo = false
+  
+  @Arg                  @DefaultValue("4")
+  public int maxOptimizationRestarts = 4
   
   @Arg                 @DefaultValue("IS")
   public Antithetics antithetics = Antithetics.IS
@@ -71,7 +76,22 @@ class VariationalPT implements PosteriorInferenceEngine {
     if (optimize) {
       val objective = new TemperingObjective(this) 
       optimizer.indexer = model(0).parameterComponents
-      optimizer.optimize(objective)
+      
+      var success = false
+      val startPoint = parameters.copy
+      for (var int i = 0; i < maxOptimizationRestarts && !success; i++) {
+        try {
+          optimizer.optimize(objective)
+          success = true
+        } catch (OptimizationFailure failure) {
+          System.out.println("Optimization failed: " + failure.message)
+          nScansPerGradient *= 2
+          if (i < maxOptimizationRestarts - 1) {
+            System.out.println("Doubling number of scans per gradient... now set to " + nScansPerGradient)
+            parameters.setTo(startPoint)
+          }
+        }
+      }
     }
   }
   
