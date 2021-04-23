@@ -1,0 +1,25 @@
+package ptbm
+
+import static ptbm.StaticUtils.*
+
+model CollapsedHierarchicalRocketsAuto2 {
+  param GlobalDataSource data
+  param String filter ?: ""
+  param Plate<String> rocketTypes
+  param Plated<IntVar> numberOfLaunches
+  random Plated<IntVar> numberOfFailures
+  random VariationalReal 
+    p0 ?: unconstrainedLatentReal(), 
+    p1 ?: unconstrainedLatentReal
+  
+  laws {
+    p0 ~ Opt(Normal::distribution(0.0, 1.0))
+    p1 ~ Opt(Normal::distribution(0.0, 1.0))
+    for (Index<String> rocketType : rocketTypes.indices.filter[key.startsWith(filter)]) {
+      numberOfFailures.get(rocketType)
+        | p0, p1,
+          IntVar numberOfLaunch = numberOfLaunches.get(rocketType)
+        ~ BetaBinomial(numberOfLaunch, max(1e-6, p0.doubleValue), max(1e-6, p1.doubleValue))
+    }
+  }
+}

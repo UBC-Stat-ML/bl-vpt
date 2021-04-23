@@ -1,0 +1,21 @@
+package ptgrad
+
+model CollapsedHierarchicalRocketsAuto {
+  param GlobalDataSource data
+  param String filter ?: ""
+  param Plate<String> rocketTypes
+  param Plated<IntVar> numberOfLaunches
+  random Plated<IntVar> numberOfFailures
+  random RealVar p0 ?: latentReal, p1 ?: latentReal
+  
+  laws {
+    p0 ~ Normal(0, 1)
+    p1 ~ Normal(0, 1)
+    for (Index<String> rocketType : rocketTypes.indices.filter[key.startsWith(filter)]) {
+      numberOfFailures.get(rocketType)
+        | p0, p1,
+          IntVar numberOfLaunch = numberOfLaunches.get(rocketType)
+        ~ BetaBinomial(numberOfLaunch, max(1e-6, p0), max(1e-6, p1))
+    }
+  }
+}
