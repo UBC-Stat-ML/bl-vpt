@@ -1,0 +1,5 @@
+package xdiff
+
+class Product {
+  
+}

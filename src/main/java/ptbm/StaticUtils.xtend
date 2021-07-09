@@ -6,6 +6,7 @@ import blang.core.RealDistribution
 
 import static blang.types.StaticUtils.*
 import blang.distributions.Normal
+import blang.core.RealVar
 
 class StaticUtils {
   
@@ -14,6 +15,11 @@ class StaticUtils {
   def static VariationalReal unconstrainedLatentReal() {
     return new VariationalReal
   }
+  
+  //// Temp
+  
+  def static double d(RealVar v) { v.doubleValue }
+  def static double p(double x) { Math::max(1e-6, x) }
   
   //// internal stuff
   

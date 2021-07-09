@@ -1,0 +1,25 @@
+package ptbm
+
+import static extension ptbm.StaticUtils.*
+
+model EightSchools2 {
+  param GlobalDataSource data
+  param Plate<String> schools
+  
+  random VariationalReal mu ?: unconstrainedLatentReal
+  random VariationalReal tau ?: unconstrainedLatentReal
+  random Plated<VariationalReal> thetas 
+  random Plated<RealVar> ys
+  random Plated<RealVar> sigmas
+  
+  laws {
+    
+    mu ~ Opt(Normal::distribution(0, 5 * 5))
+    tau ~ Opt(HalfStudentT::distribution(1, 5))
+    
+    for (Index<String> school : schools.indices) {
+      thetas.get(school) | mu, tau ~ Opt(Normal::distribution(mu, tau.d.p))
+      ys.get(school) | RealVar theta = thetas.get(school), RealVar sigma = sigmas.get(school) ~ Normal(theta, sigma * sigma)
+    }
+  }
+}

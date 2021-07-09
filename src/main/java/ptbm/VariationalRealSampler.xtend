@@ -62,13 +62,14 @@ class VariationalRealSampler implements Sampler {
  * existing:
  * 
  * - logistic
- * - copy number
- * - ode
+ * - copy number **
+ * - ode **
  * - hierarchical model (rocket, vaccine)
  * - mixture (just doing
  * 
  * easy
  * 
+ * - N school
  * - new logistics: sparse, other link functions, large p, large n, large p&n
  * - new ode (from bench paper)
  * - causality
