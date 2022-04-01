@@ -26,6 +26,7 @@ import is.DiagonalHalfSpaceImportanceSampler
 import static extension java.lang.Math.*
 import is.ImportanceSampler
 import java.util.Optional
+import opt.Optimizer
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -254,6 +255,7 @@ class TemperingObjective implements Objective {
       swapKernel
       vpt.record(samples)
     }
+    vpt.budget += (nSamples + nBurn) * nPassesPerScan * nChains
     
     // compute importance sampling estimators
     val result = new LinkedHashMap<ObjectiveType,ObjectiveEvaluation>
@@ -358,6 +360,10 @@ class TemperingObjective implements Objective {
   
   override evaluationStandardError() {
     currentPointStdErr
+  }
+  
+  override budget() {
+    vpt.budget
   }
   
 }

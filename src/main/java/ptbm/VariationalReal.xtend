@@ -13,7 +13,7 @@ class VariationalReal implements WritableRealVar {
   public RealDistribution variational = null
   
   // ID used to match up variational approximations across copies:
-  public final VariableIdentifier identifier = new VariableIdentifier
+  public VariableIdentifier identifier = new VariableIdentifier()
   
   override set(double value) {
     this.value = value

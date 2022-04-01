@@ -114,7 +114,7 @@ abstract class Optimizer {
   
   def void print(Objective obj, int iter, DenseMatrix previous) {
     
-    writer(optimization, iter).printAndWrite(
+    writer(optimization, iter, obj.budget()).printAndWrite(
       VALUE -> obj.evaluate,
       stderr -> if (obj.evaluationStandardError.present) obj.evaluationStandardError.get.toString else "NA",
       snr -> if (obj.evaluationStandardError.present) (Math::abs(obj.evaluate) / obj.evaluationStandardError.get).toString else "NA"
@@ -123,14 +123,14 @@ abstract class Optimizer {
     val monitors = new LinkedHashMap(obj.monitors)
     
     monitors.put(obj.description, obj.evaluate)
-    writer(optimizationMonitoring, iter) => [
+    writer(optimizationMonitoring, iter, obj.budget()) => [
       for (entry : monitors.entrySet)
         printAndWrite(
           name -> entry.key, 
           VALUE -> entry.value)
     ]
     
-    writer(optimizationGradient, iter) => [
+    writer(optimizationGradient, iter, obj.budget()) => [
       val gradient = obj.gradient
       for (d : 0 ..< gradient.nEntries)
         write(
@@ -139,7 +139,7 @@ abstract class Optimizer {
           VALUE -> gradient.get(d)
         )
     ]
-    writer(optimizationPath, iter) => [
+    writer(optimizationPath, iter, obj.budget()) => [
       val point = obj.currentPoint
       for (d : 0 ..< point.nEntries)
         write(
@@ -151,7 +151,7 @@ abstract class Optimizer {
     
     if (previous !== null) {
       val delta = obj.currentPoint - previous
-      writer(deltaNorm, iter).printAndWrite(VALUE -> delta.norm)
+      writer(deltaNorm, iter, obj.budget()).printAndWrite(VALUE -> delta.norm)
     }
   }
   
@@ -160,12 +160,12 @@ abstract class Optimizer {
     else return indexer.i2o(d) 
   }
   
-  static enum Fields { iter, name, dim, stderr, snr }
+  static enum Fields { iter, name, dim, stderr, snr, budget }
   
   static enum Files { optimization, optimizationMonitoring, optimizationGradient, optimizationPath, deltaNorm }
   
-  def TabularWriter writer(Files name, int iterIndex) { 
-    return results.getTabularWriter(name.toString).child(iter, iterIndex).child("isFinal", iterIndex === maxIters)
+  def TabularWriter writer(Files name, int iterIndex, double budget) { 
+    return results.getTabularWriter(name.toString).child(iter, iterIndex).child("isFinal", iterIndex === maxIters).child(Fields.budget, budget)
   }
   
 }

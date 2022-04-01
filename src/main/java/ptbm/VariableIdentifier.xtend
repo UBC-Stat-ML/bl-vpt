@@ -11,7 +11,11 @@ class VariableIdentifier {
    * When first created, a unique id will be created
    * When cloning this string will be copied from the original.
    */
-  val id = Integer.toHexString(super.hashCode())
+  val String id
+  
+  new() { this.id = Integer.toHexString(super.hashCode()) }
+  
+  new(String id) { this.id = id }
   
   override toString() { id }
 }

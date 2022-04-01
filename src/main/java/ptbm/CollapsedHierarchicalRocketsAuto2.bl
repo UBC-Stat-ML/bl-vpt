@@ -9,7 +9,7 @@ model CollapsedHierarchicalRocketsAuto2 {
   param Plated<IntVar> numberOfLaunches
   random Plated<IntVar> numberOfFailures
   random VariationalReal 
-    p0 ?: unconstrainedLatentReal(), 
+    p0 ?: unconstrainedLatentReal, 
     p1 ?: unconstrainedLatentReal
   
   laws {

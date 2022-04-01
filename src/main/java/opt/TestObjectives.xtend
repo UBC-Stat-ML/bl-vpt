@@ -83,6 +83,8 @@ class TestObjectives {
       Optional.empty
     }
     
+    override budget() { return 0 }
+    
   }
   
 }

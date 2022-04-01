@@ -25,6 +25,7 @@ class VariationalPostprocessor extends DefaultPostProcessor {
   
   def void plotStdErrs() {
     val trace = csvFile(results.resultsFolder, optimization.toString)
+    if (trace === null) return
     val baseName = TidySerializer::serializerName(trace)
     val outputFile = new File(results.resultsFolder, "standardErrors.pdf")
     callR(new File(results.resultsFolder, "." + baseName + ".r"), '''
@@ -43,6 +44,7 @@ class VariationalPostprocessor extends DefaultPostProcessor {
   }
 
   def plotTrace(File trace) {
+    if (trace === null) return
     val baseName = TidySerializer::serializerName(trace)
     val outputFile = new File(trace.parent, baseName + ".pdf")
     callR(new File(results.resultsFolder, "." + baseName + ".r"), '''
@@ -55,11 +57,11 @@ class VariationalPostprocessor extends DefaultPostProcessor {
       horizontalSize <- «facetWidth»
             
       
-      p <- ggplot(data, aes(x = «iter», y = «TidySerializer::VALUE»)) +
+      p <- ggplot(data, aes(x = «budget», y = «TidySerializer::VALUE»)) +
               geom_point(size = 0.1) + geom_line(alpha = 0.5) + 
               facet_grid(«name» ~., scales = "free_y") +
               theme_bw() + 
-              xlab("Optimization iteration") 
+              xlab("Optimization budget") 
               
       ggsave("«outputFile.absolutePath»", limitsize = F, height = verticalSize, width = horizontalSize)
     ''')

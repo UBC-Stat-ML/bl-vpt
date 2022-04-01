@@ -15,6 +15,7 @@ class StaticUtils {
   def static VariationalReal unconstrainedLatentReal() {
     return new VariationalReal
   }
+
   
   //// Temp
   
@@ -28,8 +29,6 @@ class StaticUtils {
   }
   
   def static setVariationalApproximation(SampledModel [] copies, AllSummaryStatistics allStats) {
-    blang.System.out.indentWithTiming("Variational approximation")
-    println(allStats)
     for (copy : copies) 
       for (sampler : copy.variationalRealSamplers) {
         val id = sampler.variable.identifier
@@ -37,7 +36,6 @@ class StaticUtils {
         val approx = normal(stats.mean, stats.variance)
         sampler.variable.variational = approx
       }
-    blang.System.out.popIndent
   }
   
   def static RealDistribution normal(double mean, double variance) {

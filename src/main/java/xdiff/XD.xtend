@@ -3,7 +3,7 @@ package xdiff
 import org.eclipse.xtend.lib.annotations.Data
 import java.util.List
 import java.util.ArrayList
-import org.openjdk.jmh.annotations.Benchmark
+//import org.openjdk.jmh.annotations.Benchmark
 import com.google.common.base.Stopwatch
 import java.util.concurrent.TimeUnit
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics

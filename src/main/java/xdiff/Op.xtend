@@ -3,7 +3,7 @@ package xdiff
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
 import blang.core.RealVar
-import org.nd4j.linalg.api.ndarray.INDArray
+//import org.nd4j.linalg.api.ndarray.INDArray
 
 @Data
 abstract class Op {

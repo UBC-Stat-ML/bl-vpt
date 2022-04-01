@@ -15,4 +15,5 @@ interface Objective {
   def DenseMatrix gradient()
   def Map<String,Double> monitors()
   def String description()
+  def double budget()
 }

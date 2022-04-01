@@ -67,12 +67,15 @@ class VariationalPT implements PosteriorInferenceEngine {
   
   public var DenseMatrix parameters = null
   
+  public var budget = 0.0
+  
   override check(GraphAnalysis analysis) {
     pt.check(analysis)
   }
   
   override performInference() {
     pt.performInference
+    budget += pt.nScans * pt.nPassesPerScan * pt.nChains
     if (optimize) {
       val objective = new TemperingObjective(this) 
       optimizer.indexer = model(0).parameterComponents
