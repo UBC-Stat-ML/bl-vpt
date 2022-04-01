@@ -2,17 +2,17 @@ package ptbm
 
 model Opt {
   
-  param RealDistribution distribution
+  param RealDistribution dist
   random VariationalReal realization
   
   laws {
-    logf(distribution, realization, AnnealingParameter annealing = new AnnealingParameter) { 
+    logf(dist, realization, AnnealingParameter annealing = new AnnealingParameter) { 
       if (!realization.variationalActive)
-        return distribution.logDensity(realization.doubleValue)
+        return dist.logDensity(realization.doubleValue)
       val alpha = annealing.doubleValue 
       if (alpha == 0.0) return realization.variationalLogDensity
-      if (alpha == 1.0) return distribution.logDensity(realization.doubleValue)
-      return alpha * distribution.logDensity(realization.doubleValue) + (1.0 - alpha) * realization.variationalLogDensity
+      if (alpha == 1.0) return dist.logDensity(realization.doubleValue)
+      return alpha * dist.logDensity(realization.doubleValue) + (1.0 - alpha) * realization.variationalLogDensity
     }
   }
   
@@ -20,7 +20,7 @@ model Opt {
     if (realization.variationalActive)
       realization.variationalSample(it) 
     else
-      realization.set(distribution.sample(it))
+      realization.set(dist.sample(it))
   }
   
 }
