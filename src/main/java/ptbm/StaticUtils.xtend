@@ -4,9 +4,10 @@ import blang.runtime.SampledModel
 import blang.core.RealDistribution
 
 
-import static blang.types.StaticUtils.*
+import static blang.types.StaticUtils.fixedReal
 import blang.distributions.Normal
 import blang.core.RealVar
+import bayonet.math.NumericalUtils
 
 class StaticUtils {
   
@@ -17,10 +18,15 @@ class StaticUtils {
   }
 
   
-  //// Temp
-  
-  def static double d(RealVar v) { v.doubleValue }
-  def static double p(double x) { Math::max(1e-6, x) }
+  /**
+   * Soft plus i.e. soft version of "positive part" or max(0, x)
+   */
+  def static double softplus(double x) { 
+    if (x >= 15.0) return x
+    val result = Math::log1p(Math::exp(x))
+    return Math::max(result, NumericalUtils::THRESHOLD)
+  }
+  def static double softplus(RealVar x) { softplus(x.doubleValue) }
   
   //// internal stuff
   

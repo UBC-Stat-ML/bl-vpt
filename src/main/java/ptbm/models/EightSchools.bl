@@ -19,7 +19,7 @@ model EightSchools {
     tau ~ Opt(HalfStudentT::distribution(1, 5))
     
     for (Index<String> school : schools.indices) {
-      thetas.get(school) | mu, tau ~ Opt(Normal::distribution(mu, tau.d.p))
+      thetas.get(school) | mu, tau ~ Opt(Normal::distribution(mu, tau.softplus))
       ys.get(school) | RealVar theta = thetas.get(school), RealVar sigma = sigmas.get(school) ~ Normal(theta, sigma * sigma)
     }
   }

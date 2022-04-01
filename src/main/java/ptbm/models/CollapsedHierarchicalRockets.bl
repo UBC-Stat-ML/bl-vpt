@@ -1,6 +1,6 @@
 package ptbm.models
 
-import static ptbm.StaticUtils.*
+import static extension ptbm.StaticUtils.*
 import ptbm.VariationalReal
 
 model CollapsedHierarchicalRockets {
@@ -20,7 +20,7 @@ model CollapsedHierarchicalRockets {
       numberOfFailures.get(rocketType)
         | p0, p1,
           IntVar numberOfLaunch = numberOfLaunches.get(rocketType)
-        ~ BetaBinomial(numberOfLaunch, max(1e-6, p0.doubleValue), max(1e-6, p1.doubleValue))
+        ~ BetaBinomial(numberOfLaunch, p0.softplus, p1.softplus)
     }
   }
 }
