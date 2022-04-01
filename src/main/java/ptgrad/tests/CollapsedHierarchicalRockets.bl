@@ -1,29 +1,21 @@
-package ptbm
+package ptgrad.tests
 
-model HierarchicalRockets2 {
+model CollapsedHierarchicalRockets {
   param GlobalDataSource data
   param String filter ?: ""
   param Plate<String> rocketTypes
   param Plated<IntVar> numberOfLaunches
-  
-  random Plated<RealVar> failureParameters  //TODO: test 
   random Plated<IntVar> numberOfFailures
   random RealVar a ?: latentReal, b ?: latentReal
   
   laws {
-    
-    a ~ StudentT(1, 0, 1)
-    b ~ StudentT(1, 0, 1)
-    
+    a ~ Exponential(0.1)
+    b ~ Exponential(0.1)
     for (Index<String> rocketType : rocketTypes.indices.filter[key.startsWith(filter)]) {
-      
-      failureParameters.get(rocketType) | a, b 
-        ~ Normal(a, log1p(exp(b)))
-      
       numberOfFailures.get(rocketType)
-        | RealVar failureParameter = failureParameters.get(rocketType),
+        | a, b,
           IntVar numberOfLaunch = numberOfLaunches.get(rocketType)
-        ~ Binomial(numberOfLaunch, logistic(failureParameter))
+        ~ BetaBinomial(numberOfLaunch, a, b)
     }
   }
 }

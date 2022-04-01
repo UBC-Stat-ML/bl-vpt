@@ -1,4 +1,7 @@
-package ptgrad
+package ptbm.models
+
+import static ptbm.StaticUtils.*
+import ptbm.VariationalReal
 
 model CollapsedHierarchicalRockets {
   param GlobalDataSource data
@@ -6,16 +9,18 @@ model CollapsedHierarchicalRockets {
   param Plate<String> rocketTypes
   param Plated<IntVar> numberOfLaunches
   random Plated<IntVar> numberOfFailures
-  random RealVar a ?: latentReal, b ?: latentReal
+  random VariationalReal 
+    p0 ?: unconstrainedLatentReal, 
+    p1 ?: unconstrainedLatentReal
   
   laws {
-    a ~ Exponential(0.1)
-    b ~ Exponential(0.1)
+    p0 ~ Opt(Normal::distribution(0.0, 1.0))
+    p1 ~ Opt(Normal::distribution(0.0, 1.0))
     for (Index<String> rocketType : rocketTypes.indices.filter[key.startsWith(filter)]) {
       numberOfFailures.get(rocketType)
-        | a, b,
+        | p0, p1,
           IntVar numberOfLaunch = numberOfLaunches.get(rocketType)
-        ~ BetaBinomial(numberOfLaunch, a, b)
+        ~ BetaBinomial(numberOfLaunch, max(1e-6, p0.doubleValue), max(1e-6, p1.doubleValue))
     }
   }
 }

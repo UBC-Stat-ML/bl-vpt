@@ -1,4 +1,4 @@
-package ptgrad
+package ptgrad.tests
 
 import blang.core.WritableRealVar
 import java.util.List
@@ -34,6 +34,9 @@ import blang.runtime.SampledModel.SampleWriter
 import blang.runtime.internals.objectgraph.SkipDependency
 import blang.runtime.internals.objectgraph.GraphAnalysis
 import static extension ptgrad.Utils.logDensity;
+import ptgrad.Interpolation
+import ptgrad.VariationalParameterType
+import ptgrad.Utils
 
 class CHRVariational extends Interpolation {
   

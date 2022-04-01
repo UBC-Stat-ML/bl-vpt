@@ -1,6 +1,7 @@
-package ptbm
+package ptbm.models
 
 import static extension ptbm.StaticUtils.*
+import ptbm.VariationalReal
 
 model MRNATransfection2 {
   

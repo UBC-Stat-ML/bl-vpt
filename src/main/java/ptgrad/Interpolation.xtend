@@ -15,6 +15,9 @@ import java.util.ArrayList
 import blang.inits.Implementations
 import blang.runtime.internals.objectgraph.SkipDependency
 import xlinear.AutoDiff
+import ptgrad.tests.ToyNormal
+import ptgrad.tests.ConjugateNormal
+import ptgrad.tests.CHRVariational
 
 /**
  * One point in a sequence of distributions from a tractable one to 

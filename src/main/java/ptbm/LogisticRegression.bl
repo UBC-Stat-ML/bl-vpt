@@ -1,8 +1,0 @@
-package ptbm
-
-model LogisticRegression {
-  
-  laws {
-    
-  }
-}

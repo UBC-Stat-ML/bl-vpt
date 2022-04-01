@@ -1,4 +1,4 @@
-package ptgrad
+package ptgrad.tests
 
 model CollapsedHierarchicalRocketsAuto {
   param GlobalDataSource data

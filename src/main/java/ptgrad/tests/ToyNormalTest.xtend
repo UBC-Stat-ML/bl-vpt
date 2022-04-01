@@ -1,14 +1,14 @@
-package ptgrad
+package ptgrad.tests
 
 import blang.inits.experiments.Experiment
 import blang.runtime.Runner
-import ptgrad.ConjugateNormal
+import ptgrad.tests.ConjugateNormal
 import ptgrad.Variational
 import ptgrad.VariationalPT
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 import is.DiagonalHalfSpaceImportanceSampler
 import bayonet.math.NumericalUtils
-import ptgrad.ToyNormal
+import ptgrad.tests.ToyNormal
 import ptgrad.TemperingObjective
 import ptanalysis.PTGradientTest
 import blang.inits.Arg

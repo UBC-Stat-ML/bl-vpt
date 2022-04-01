@@ -1,5 +1,0 @@
-package xdiff
-
-class Product {
-  
-}

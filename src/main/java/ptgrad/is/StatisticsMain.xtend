@@ -2,7 +2,7 @@ package ptgrad.is
 
 import blang.inits.experiments.Experiment
 import blang.runtime.Runner
-import ptgrad.ConjugateNormal
+import ptgrad.tests.ConjugateNormal
 import ptgrad.Variational
 import ptgrad.VariationalPT
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics

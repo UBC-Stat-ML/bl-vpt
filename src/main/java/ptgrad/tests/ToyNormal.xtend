@@ -1,4 +1,4 @@
-package ptgrad
+package ptgrad.tests
 
 import blang.core.WritableRealVar
 import java.util.List
@@ -16,6 +16,7 @@ import static extension xlinear.AutoDiff.*
 import blang.types.StaticUtils
 import blang.inits.Arg
 import blang.inits.DefaultValue
+import ptgrad.Interpolation
 
 class ToyNormal extends Interpolation {
   

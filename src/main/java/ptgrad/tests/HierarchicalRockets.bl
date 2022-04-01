@@ -1,4 +1,4 @@
-package ptgrad
+package ptgrad.tests
 
 model HierarchicalRockets {
   param GlobalDataSource data
