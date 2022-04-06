@@ -27,6 +27,7 @@ import static extension java.lang.Math.*
 import is.ImportanceSampler
 import java.util.Optional
 import opt.Optimizer
+import org.eclipse.xtend.lib.annotations.Data
 
 class TemperingObjective implements Objective {
   val VariationalPT vpt 
@@ -67,7 +68,7 @@ class TemperingObjective implements Objective {
   
   override description() { vpt.objective.class.simpleName }
   
-  @Implementations(Rejection, SKL, SqrtHalfSKL, Inef, ApproxRejection) 
+  @Implementations(Rejection, SKL, FKL, BKL, SqrtHalfSKL, Inef, ApproxRejection) 
   static interface ObjectiveType {
     def ObjectiveEvaluation compute(ChainPair samples, ChainPair tuningSamples)
   }
@@ -196,29 +197,46 @@ class TemperingObjective implements Objective {
     }
   }
   
-  static class SKL implements ObjectiveType {
+  static class SKL extends KLs { new() { super(true, true) } }
+  static class FKL extends KLs { new() { super(true, false) } }
+  static class BKL extends KLs { new() { super(false, true) } }
+  
+  @Data
+  static class KLs implements ObjectiveType {
+    
+    val boolean fwd
+    val boolean bwd
     
     override compute(ChainPair p, ChainPair tuningSamples) {
       val result = new ObjectiveEvaluation
-      val objectiveTerms = new ArrayList<ImportanceSampler>(2)
-      val gradientTerms = new ArrayList<DenseMatrix>(2)
       
-      for (i : 0 ..< 2) {
+      for (i : 0 ..< 2) 
+        if ((i == 0 && fwd) ||
+            (i == 1 && bwd)) {
+        
         val samples = p.samples.get(i)
         val beta = p.betas.get(i)
         val expectedDelta = expectedDelta(samples, p.betas)
-        objectiveTerms.add(expectedDelta)
         
-        gradientTerms +=
+        val gradientTerm =
           expectedGradientTimesDelta(samples, beta, p.betas).estimate -
           expectedGradient(samples, beta).estimate * expectedDelta.estimate +
           expectedGradientDelta(samples, p.betas).estimate
           
-      }
-      
-      result.objective = objectiveTerms.get(1).estimate.doubleValue - objectiveTerms.get(0).estimate.doubleValue
-      result.gradient = gradientTerms.get(1) - gradientTerms.get(0)
-      result.objectiveVariance = objectiveTerms.get(1).standardError.doubleValue.pow(2) + objectiveTerms.get(0).standardError.doubleValue.pow(2)
+        result.objectiveVariance = 
+          (if (result.objectiveVariance === null) 0.0 else result.objectiveVariance) +
+          expectedDelta.standardError.doubleValue.pow(2)
+          
+        val sign = (if (i == 0) (-1.0) else 1.0)
+        result.objective = 
+          (if (result.objective === null) 0.0 else result.objective) +
+          expectedDelta.estimate.doubleValue * sign
+        
+        result.gradient =
+          (if (result.gradient === null) gradientTerm * sign else result.gradient + gradientTerm * sign)
+          
+      } 
+
       
       return result
     }
@@ -228,6 +246,15 @@ class TemperingObjective implements Objective {
   def ObjectiveEvaluation estimate() {
     val key = vpt.objective
     return estimate(Collections.singletonList(key)).get(key)
+  }
+  
+  int _iter = 1
+  def void scan(Map<Double, List<Sample>> samples) {
+    val it = vpt.pt
+    moveKernel(nPassesPerScan)
+    swapKernel()
+    vpt.record(samples)
+    vpt.pt.recordSamples(vpt.pt.nScans + (_iter++))
   }
     
   def Map<ObjectiveType,ObjectiveEvaluation> estimate(Collection<ObjectiveType> objectives) {
@@ -240,9 +267,7 @@ class TemperingObjective implements Objective {
     val nBurn = (vpt.nScansPerGradient * vpt.miniBurnInFraction) as int
     val it = vpt.pt
     for (i : 0 ..< nBurn) {
-      moveKernel(nPassesPerScan)
-      swapKernel
-      vpt.record(tuningSamples)
+      scan(tuningSamples)
     }
     
     // samples list
@@ -251,9 +276,7 @@ class TemperingObjective implements Objective {
     // record samples 
     val nSamples = vpt.nScansPerGradient - nBurn
     for (i : 0 ..< nSamples) {
-      moveKernel(nPassesPerScan)
-      swapKernel
-      vpt.record(samples)
+      scan(samples)
     }
     vpt.budget += (nSamples + nBurn) * nPassesPerScan * nChains
     

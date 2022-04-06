@@ -25,6 +25,7 @@ import ptgrad.TemperingObjective.ObjectiveType
 import opt.Optimizer.OptimizationFailure
 import static extension xlinear.MatrixExtensions.*
 import static extension blang.types.ExtensionUtils.*
+import opt.Adam
 
 class VariationalPT implements PosteriorInferenceEngine {
   
@@ -43,14 +44,15 @@ class VariationalPT implements PosteriorInferenceEngine {
   @Arg                  @DefaultValue("Rejection")
   public ObjectiveType objective = new Rejection
   
-  @Arg              @DefaultValue("SGD")
-  public Optimizer optimizer = new SGD 
+  @Arg              @DefaultValue("Adam")
+  public Optimizer optimizer = new Adam 
   
   @Arg                   @DefaultValue("false")
   public boolean detailedGradientInfo = false
   
-  @Arg                  @DefaultValue("4")
-  public int maxOptimizationRestarts = 4
+  @Arg(description = "When optimization fails, if greater than one, allows some retries from scratch.")
+                        @DefaultValue("1")
+  public int maxOptimizationRestarts = 1
   
   @Arg                 @DefaultValue("IS")
   public Antithetics antithetics = Antithetics.IS

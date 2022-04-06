@@ -1,0 +1,49 @@
+package ptbm.models
+
+import static extension ptbm.models.Utils.*
+import static extension ptbm.StaticUtils.*
+import static extension bayonet.math.SpecialFunctions.logistic;
+import ptbm.VariationalReal
+
+// from blogobayes
+// original parameterization GCB is 5.1 (see results/all/2022-04-04-14-26-14-IzVHwzca.exec)
+// with new param: 5.5
+// variational MF: around 2.2
+model Vaccines {
+  
+  param GlobalDataSource data
+  
+  param Plate<String> trials
+  param Plate<String> arms
+  param Plated<IntVar> groupSizes
+  random Plated<IntVar> numbersOfCases
+  
+  random Plated<VariationalReal> efficacies
+  random Plated<VariationalReal> incidences
+  
+  random VariationalReal eff_m ?: unconstrainedLatentReal, eff_d ?: unconstrainedLatentReal, inc_m ?: unconstrainedLatentReal, inc_d ?: unconstrainedLatentReal
+  
+  laws {
+    
+    eff_m ~ Opt(StudentT::distribution(1.0, 0.0, 100.0))
+    eff_d ~ Opt(StudentT::distribution(1.0, 0.0, 100.0))
+    inc_m ~ Opt(StudentT::distribution(1.0, 0.0, 100.0))
+    inc_d ~ Opt(StudentT::distribution(1.0, 0.0, 100.0))
+    
+    for (Index<String> trial : trials.indices) {
+      efficacies.get(trial) | eff_m, eff_d ~ Opt(Normal::distribution(eff_m, eff_d.softplus))
+      incidences.get(trial) | inc_m, inc_d ~ Opt(Normal::distribution(inc_m, inc_d.softplus))
+    }
+    
+    for (Index<String> trial : trials.indices) {
+      for (Index<String> arm : arms.indices) {
+        numbersOfCases.get(trial, arm) | 
+          IntVar groupSize = groupSizes.get(trial, arm), 
+          RealVar efficacy = if (arm.isControl) 0.0 else efficacies.get(trial),
+          RealVar incidence = incidences.get(trial)  
+          ~ Binomial(groupSize, incidence.logistic * (1.0 - efficacy.logistic))      
+      }
+    }
+    
+  }
+}

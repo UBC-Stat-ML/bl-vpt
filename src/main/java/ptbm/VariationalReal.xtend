@@ -15,6 +15,8 @@ class VariationalReal implements WritableRealVar {
   // ID used to match up variational approximations across copies:
   public VariableIdentifier identifier = new VariableIdentifier()
   
+  public boolean paused = false
+  
   override set(double value) {
     this.value = value
   }
@@ -24,7 +26,7 @@ class VariationalReal implements WritableRealVar {
   }
   
   def boolean isVariationalActive() {
-    return variational !== null
+    return variational !== null && !paused
   }
   
   def void variationalSample(Random rand) {

@@ -34,6 +34,11 @@ class StaticUtils {
     model.posteriorInvariantSamplers.filter(VariationalRealSampler)
   }
   
+  def static setVariationalActive(SampledModel model, boolean active) {
+    for (sampler : model.variationalRealSamplers)
+      sampler.variable.paused = !active
+  }
+  
   def static setVariationalApproximation(SampledModel [] copies, AllSummaryStatistics allStats) {
     for (copy : copies) 
       for (sampler : copy.variationalRealSamplers) {

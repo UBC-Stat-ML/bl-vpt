@@ -38,8 +38,8 @@ abstract class Optimizer {
   public int maxIters = 100
   
   @Arg(description = "Compare the objective at a lag, if no improvement, stop (set to zero to disable)")
-                 @DefaultValue("20")
-  public int progressCheckLag = 20
+                 @DefaultValue("0")
+  public int progressCheckLag = 0
   
   @Arg 
   public Optional<Integer> nIterationsStandardErrorCheck = Optional.empty

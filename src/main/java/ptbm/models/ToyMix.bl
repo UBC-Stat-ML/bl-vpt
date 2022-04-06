@@ -1,0 +1,27 @@
+package ptbm.models
+
+import bayonet.math.NumericalUtils
+import ptbm.VariationalReal
+import static extension ptbm.StaticUtils.*
+
+
+// from blangDemos
+model ToyMix {
+  random VariationalReal x ?: unconstrainedLatentReal
+  
+  laws {
+    x ~ Opt(Normal::distribution(0.0, 1.0))
+    
+    | x, 
+      double log2 = log(2.0),
+      RealDistribution std = Normal::distribution(0.0, 1.0),
+      RealDistribution c1 = Normal::distribution(-1.0, 0.01), 
+      RealDistribution c2 = Normal::distribution(1.0, 0.01) 
+      ~ LogPotential(
+          NumericalUtils::logAdd(
+            c1.logDensity(x.doubleValue) - log2, 
+            c2.logDensity(x.doubleValue) - log2
+          ) - std.logDensity(x.doubleValue)
+      )
+  }
+}
