@@ -56,7 +56,7 @@ class AllSummaryStatistics {
         write(
           dim -> d++,
           name -> (entry.key.toString + "_SOFTPLUS_VARIANCE"),
-          VALUE -> Math::log(Math::exp(entry.value.variance) - 1.0)
+          VALUE -> entry.value.variance.inv_softplus
         )
       }
     ]

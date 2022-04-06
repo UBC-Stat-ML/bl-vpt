@@ -37,6 +37,7 @@ import static extension ptgrad.Utils.logDensity;
 import ptgrad.Interpolation
 import ptgrad.VariationalParameterType
 import ptgrad.Utils
+import static extension ptbm.StaticUtils.*
 
 class CHRVariational extends Interpolation {
   
@@ -62,7 +63,7 @@ class CHRVariational extends Interpolation {
       val meanParam = param(params, variableName, VariationalParameterType::MEAN)
       val softPlusVarianceParam = param(params, variableName, VariationalParameterType::SOFTPLUS_VARIANCE)
       val sampled = variables.get(variableName).doubleValue
-      variationalLogDensity += logNormalLogDensity(constant(sampled), meanParam, (softPlusVarianceParam.exp).log1p)
+      variationalLogDensity += logNormalLogDensity(constant(sampled), meanParam, softPlusVarianceParam.softplus)
     }
     
     // interpolate (direct for now)
@@ -77,7 +78,7 @@ class CHRVariational extends Interpolation {
       
       val meanParam = param(variableName, VariationalParameterType::MEAN).value
       val logVarianceParam = param(variableName, VariationalParameterType::SOFTPLUS_VARIANCE).value
-      val varianceParam = Math::log1p(Math::exp(logVarianceParam))
+      val varianceParam = logVarianceParam.softplus
       val sample = Math::exp(meanParam + Math::sqrt(varianceParam) * stdNormalSample)
       
       val WritableRealVar variable = variables.get(variableName) as WritableRealVar

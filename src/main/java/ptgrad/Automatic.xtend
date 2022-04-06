@@ -36,6 +36,8 @@ import blang.runtime.internals.objectgraph.GraphAnalysis
 import java.util.Collections
 import blang.core.Model
 import blang.runtime.internals.objectgraph.ObjectNode
+import static extension ptbm.StaticUtils.*
+
 
 import static extension ptgrad.Utils.logDensity;
 import blang.core.ModelBuilder
@@ -73,7 +75,7 @@ class Automatic extends Interpolation
       val meanParam = param(params, variableName, VariationalParameterType::MEAN)
       val softPlusVarianceParam = param(params, variableName, VariationalParameterType::SOFTPLUS_VARIANCE)
       val sampled = variables.get(variableName).doubleValue
-      variationalLogDensity += normalLogDensity(constant(sampled), meanParam, (softPlusVarianceParam.exp).log1p)
+      variationalLogDensity += normalLogDensity(constant(sampled), meanParam, softPlusVarianceParam.softplus)
     }
     
     // interpolate (direct for now)
@@ -86,7 +88,7 @@ class Automatic extends Interpolation
     for (variableName : variables.keySet) {
       val meanParam = param(variableName, VariationalParameterType::MEAN).value
       val logVarianceParam = param(variableName, VariationalParameterType::SOFTPLUS_VARIANCE).value
-      val varianceParam = Math::log1p(Math::exp(logVarianceParam))
+      val varianceParam = logVarianceParam.softplus
       val sample = Generators::normal(random, meanParam, varianceParam)
       val WritableRealVar variable = variables.get(variableName) as WritableRealVar
       variable.set(sample)
