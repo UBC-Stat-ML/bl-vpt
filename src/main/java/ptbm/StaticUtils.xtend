@@ -22,17 +22,9 @@ class StaticUtils {
   /**
    * Soft plus i.e. soft version of "positive part" or max(0, x)
    */
-  def static double softplus(double x) { 
-    if (x > 33.0) return x
-    val result = Math::log1p(Math::exp(x))
-    return result
-  }
+  def static softplus(double x)              { if (x > 33.0)       x else Math::log1p(Math::exp(x)) }
+  def static softplus(DerivativeStructure x) { if (x.value > 33.0) x else x.exp.log1p }
   def static double softplus(RealVar x) { softplus(x.doubleValue) }
-  def static DerivativeStructure softplus(DerivativeStructure x) { 
-    if (x.value > 33.0) return x
-    return x.exp.log1p
-  }
-  
   
   def static double inv_softplus(double x) { 
     if (x < 0) return Double.NaN
