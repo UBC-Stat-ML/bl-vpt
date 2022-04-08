@@ -18,12 +18,14 @@ import static extension ptbm.StaticUtils.*
 
 class OptPT extends PT {
   
-  @Arg @DefaultValue("100")
+  @Arg(description = "Use classical annealing until a certain number of samples is accumulated, then turn on one variational reference") 
+                         @DefaultValue("100")
   public int minSamplesForVariational = 100
   
   public PT fixedRefPT = null
   
-  @Arg            @DefaultValue("true")
+  @Arg(description = "In addition to a chain from variational distribution to target, use another chain based on classical annealing from prior")           
+                  @DefaultValue("true")
   public boolean useFixedRefPT = true
   
   var budget = 0.0
