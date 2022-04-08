@@ -25,10 +25,10 @@ model Vaccines {
   
   laws {
     
-    eff_m ~ Opt(StudentT::distribution(1.0, 0.0, 100.0))
-    eff_d ~ Opt(StudentT::distribution(1.0, 0.0, 100.0))
-    inc_m ~ Opt(StudentT::distribution(1.0, 0.0, 100.0))
-    inc_d ~ Opt(StudentT::distribution(1.0, 0.0, 100.0))
+    eff_m ~ Opt(Normal::distribution(0.0, 1000.0))
+    eff_d ~ Opt(Normal::distribution(0.0, 1000.0))
+    inc_m ~ Opt(Normal::distribution(0.0, 1000.0))
+    inc_d ~ Opt(Normal::distribution(0.0, 1000.0))
     
     for (Index<String> trial : trials.indices) {
       efficacies.get(trial) | eff_m, eff_d ~ Opt(Normal::distribution(eff_m, eff_d.softplus))
