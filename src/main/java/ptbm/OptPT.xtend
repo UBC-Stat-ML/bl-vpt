@@ -77,6 +77,7 @@ class OptPT extends PT {
       activated = true
       System.out.println('''Updating variational reference («stats.values.keySet.size» variables)''')
       states.setVariationalApproximation(stats)
+      if (useFixedRefPT) fixedRefPT.states.setVariationalApproximation(stats)
       stats.report(results, iterIdx, finalAdapt, budget)
       results.getTabularWriter(optimizationMonitoring.toString).child(iter, iterIdx).child("isFinal", finalAdapt).child(Fields.budget, budget) => [
         write(

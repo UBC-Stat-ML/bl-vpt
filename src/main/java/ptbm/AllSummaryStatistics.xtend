@@ -17,8 +17,8 @@ class AllSummaryStatistics {
   
   // warning: changes the state of copies (reset stats)
   def getAndResetStatistics(SampledModel [] models) {
-    for (copy : models) 
-      for (variationalSampler : copy.variationalRealSamplers) 
+    for (model : models) 
+      for (variationalSampler : model.variationalRealSamplers) 
         add(variationalSampler)
   }
   
