@@ -1,22 +1,20 @@
 package ptbm
 
+import bayonet.distributions.Random
+import blang.System
 import blang.engines.internals.Spline.MonotoneCubicSpline
 import blang.engines.internals.factories.PT
 import blang.inits.Arg
 import blang.inits.DefaultValue
-
-import static opt.Optimizer.Files.*
-import static opt.Optimizer.Fields.*
-import opt.Optimizer.Fields
-import  static blang.inits.experiments.tabwriters.TidySerializer.VALUE
-
-import blang.System;
-
-import static extension ptbm.StaticUtils.*
 import blang.runtime.SampledModel
 import java.util.Arrays
-import bayonet.distributions.Random
-import blang.engines.internals.factories.PT.Round
+import opt.Optimizer.Fields
+
+import static blang.inits.experiments.tabwriters.TidySerializer.VALUE
+import static opt.Optimizer.Fields.*
+import static opt.Optimizer.Files.*
+
+import static extension ptbm.StaticUtils.*
 
 class OptPT extends PT {
   
@@ -69,9 +67,14 @@ class OptPT extends PT {
   }
   
   int iterIdx = 0
+  boolean activated = false
+  MonotoneCubicSpline _refSpline = null
   override MonotoneCubicSpline adapt(boolean finalAdapt) { 
-    val stats = AllSummaryStatistics.getAndResetStatistics(states)
+    val stats = new AllSummaryStatistics
+    stats.getAndResetStatistics(states)
+    if (useFixedRefPT) stats.getAndResetStatistics(fixedRefPT.states) 
     if (stats.n > minSamplesForVariational) {
+      activated = true
       System.out.println('''Updating variational reference («stats.values.keySet.size» variables)''')
       states.setVariationalApproximation(stats)
       stats.report(results, iterIdx, finalAdapt, budget)
@@ -85,7 +88,7 @@ class OptPT extends PT {
     iterIdx++
     
     if (useFixedRefPT) {
-      fixedRefPT.adapt(finalAdapt) 
+      _refSpline = fixedRefPT.adapt(finalAdapt) 
     }
     
     return super.adapt(finalAdapt)
@@ -93,8 +96,15 @@ class OptPT extends PT {
   
   override void recordSamples(int scanIndex) {
     super.recordSamples(scanIndex)
-    // not using those at the moment but could later...
-    // if (useFixedRefPT) fixedRefPT.recordSamples(scanIndex)
+    if (useFixedRefPT) fixedRefPT.recordSamples(scanIndex)
+  }
+  
+  override void reportLambdaFunctions(Round round, MonotoneCubicSpline cumulativeLambdaEstimate) {
+    super.reportLambdaFunctions(round, cumulativeLambdaEstimate)
+    if (useFixedRefPT) {
+      fixedRefPT.reportLambdaFunctions(round, _refSpline)
+      fixedRefPT.results.flushAll
+    }
   }
   
   override void reportAcceptanceRatios(Round round) {
@@ -105,7 +115,7 @@ class OptPT extends PT {
   }
   
   override void reportParallelTemperingDiagnostics(Round round) {
-    System.out.indentWithTiming("Variational chains:")
+    System.out.indentWithTiming('''Variational chains («IF activated»activated«ELSE»not yet activated«ENDIF»):''')
     super.reportParallelTemperingDiagnostics(round)
     System.out.popIndent
     if (useFixedRefPT) {
@@ -113,6 +123,11 @@ class OptPT extends PT {
       fixedRefPT.reportParallelTemperingDiagnostics(round)
       System.out.popIndent
     }
+  }
+  
+  override void recordEnergyStatistics(int iter) {
+    super.recordEnergyStatistics(iter)
+    if (useFixedRefPT) fixedRefPT.recordEnergyStatistics(iter)
   }
   
   override void setSampledModel(SampledModel m) {
@@ -153,7 +168,7 @@ class OptPT extends PT {
     fpt.statisticRecordedMaxChainIndex = this.statisticRecordedMaxChainIndex
     
     // output statistics in subdirectory
-    fpt.results = this.results.child("fixedReferencePT")
+    fpt.results = this.results.child(fixedReferencePT)
     
     // split randoms
     val randoms = Random::parallelRandomStreams(this.random, 2)
@@ -161,5 +176,7 @@ class OptPT extends PT {
     fpt.random = randoms.get(1)
 
   }
+  
+  public static String fixedReferencePT = "fixedReferencePT"
   
 }

@@ -7,20 +7,34 @@ import opt.Optimizer
 import blang.inits.experiments.tabwriters.TidySerializer
 import static opt.Optimizer.Files.*
 import static opt.Optimizer.Fields.*
-
+import blang.System;
 
 import static blang.inits.experiments.tabwriters.factories.CSV.*
+import ptbm.OptPT
+import java.util.Optional
 
 class VariationalPostprocessor extends DefaultPostProcessor {
  
   override run() {
-    
+    System.out.indentWithTiming("Variational chain")
     for (file : #[optimizationMonitoring, optimizationPath, optimizationGradient])
       plotTrace(csvFile(results.resultsFolder, file.toString))
-      
     plotStdErrs()
-      
     super.run
+    System.out.popIndent
+    
+    diagnosticReferenceChain()
+  }
+  
+  def diagnosticReferenceChain() {
+    val childFolder = results.getFileInResultFolder(OptPT::fixedReferencePT)
+    if (childFolder.exists) {
+      System.out.indentWithTiming("Fixed reference chain")
+      this.blangExecutionDirectory = Optional.of(childFolder)
+      this.results = this.results.child(OptPT::fixedReferencePT)
+      super.run
+      System.out.popIndent
+    }
   }
   
   def void plotStdErrs() {

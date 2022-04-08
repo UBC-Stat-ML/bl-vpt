@@ -15,12 +15,8 @@ class AllSummaryStatistics {
   public val Map<VariableIdentifier, MeanVarSummaries> values = new LinkedHashMap
   @Accessors(PUBLIC_GETTER) var n = 0L
   
-  def static AllSummaryStatistics getAndResetStatistics(SampledModel [] models) {
-    return new AllSummaryStatistics(models)
-  }
-  
   // warning: changes the state of copies (reset stats)
-  private new(SampledModel [] models) {
+  def getAndResetStatistics(SampledModel [] models) {
     for (copy : models) 
       for (variationalSampler : copy.variationalRealSamplers) 
         add(variationalSampler)
