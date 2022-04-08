@@ -84,6 +84,10 @@ class OptPT extends PT {
           name -> "Rejection",
           VALUE -> Arrays.stream(swapAcceptPrs).map[1.0 - mean].mapToDouble[it].sum
         )
+        write(
+          name -> "Inef",
+          VALUE -> Arrays.stream(swapAcceptPrs).map[val s = mean; return (1.0 - s) / s].mapToDouble[it].sum
+        )
       ]
     }
     iterIdx++
