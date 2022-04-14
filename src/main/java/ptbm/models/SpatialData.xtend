@@ -1,24 +1,21 @@
 package ptbm.models
 
-import blang.types.Plate
-import blang.inits.Arg
-import xlinear.SparseMatrix
-import blang.types.PlatedMatrix
+import blang.inits.ConstructorArg
+import blang.inits.DesignatedConstructor
+import briefj.collections.UnorderedPair
+import com.rits.cloning.Immutable
 import java.io.File
+import java.util.LinkedHashSet
+import org.apache.commons.math3.linear.EigenDecomposition
+import org.eclipse.xtend.lib.annotations.Data
+import xlinear.DenseMatrix
+import xlinear.Matrix
+import xlinear.SparseMatrix
+
 import static briefj.BriefIO.*
 import static xlinear.MatrixOperations.*
+
 import static extension xlinear.MatrixExtensions.*
-import org.apache.commons.math3.linear.EigenDecomposition
-import xlinear.Matrix
-import blang.distributions.Exponential.Builder
-import xlinear.DenseMatrix
-import com.rits.cloning.Immutable
-import org.eclipse.xtend.lib.annotations.Data
-import blang.inits.ConstructorArg
-import briefj.collections.UnorderedPair
-import java.util.ArrayList
-import blang.inits.DesignatedConstructor
-import java.util.LinkedHashSet
 
 @Immutable
 @Data

@@ -1,2 +1,11 @@
 Note: adj.csv is 1 indexed while data.csv is 0-indexed. 
 It's on purpose, the current script to read in takes that into account.
+
+Used:
+
+source('data/scotland_lip_cancer.RData')
+scaled_x <- c(scale(x))
+df <- data.frame(counts = O, expectedCounts = E, covariates = scaled_x)
+
+
+Then a manually tweak to make it 0-indexed

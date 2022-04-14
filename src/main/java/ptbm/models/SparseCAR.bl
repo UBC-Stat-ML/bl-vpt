@@ -15,7 +15,6 @@ model SparseCAR {
   param RealDistribution pseudoPrior ?: Normal::distribution(0, 100)
   
   random VariationalReal alpha
-//  random RealVar alpha ?: 0.5
   random VariationalReal tau 
   random VariationalReal slope, intercept
   random Plated<VariationalReal> spatialEffects
@@ -23,12 +22,7 @@ model SparseCAR {
   
   laws {
    
-    alpha ~ 
-      Opt(
-        ContinuousUniform
-        ::distribution
-        (0, 1)
-      ) 
+    alpha ~ Opt(ContinuousUniform::distribution(0, 1)) 
     tau ~ Opt(Gamma::distribution(2, 2))
     slope ~ Opt(Normal::distribution(0, 1)) 
     intercept ~ Opt(Normal::distribution(0, 1)) 
@@ -50,10 +44,8 @@ model SparseCAR {
          VariationalReal secondEffect = spatialEffects.get(locations.index(pair.second)), 
          double w = spatialData.adjacency.get(pair.first, pair.second) 
        ~ LogPotential({
-          if (tau.doubleValue <= 0.0) 
-            return NEGATIVE_INFINITY
-          if (alpha.doubleValue < 0.0 || alpha.doubleValue >= 1.0) 
-            return NEGATIVE_INFINITY
+          if (tau.doubleValue <= 0.0) return NEGATIVE_INFINITY
+          if (alpha.doubleValue < 0.0 || alpha.doubleValue >= 1.0) return NEGATIVE_INFINITY
           return firstEffect.doubleValue *
             tau.doubleValue * alpha.doubleValue * w *
             secondEffect.doubleValue
@@ -67,8 +59,7 @@ model SparseCAR {
          VariationalReal effect  = spatialEffects.get(location), 
          double d = spatialData.getD.get(location.key, location.key) 
        ~ LogPotential({
-          if (tau.doubleValue <= 0.0) 
-            return NEGATIVE_INFINITY
+          if (tau.doubleValue <= 0.0) return NEGATIVE_INFINITY
           return - 0.5 * effect.doubleValue *
             tau.doubleValue * d *
             effect.doubleValue
@@ -78,13 +69,11 @@ model SparseCAR {
     // Gaussian likelihood, continued (normalization constant)
     | int n = locations.indices.size ~ LogPotential(-0.5 * n * log(2.0 * PI))
     | tau, int n = locations.indices.size ~ LogPotential({
-      if (tau.doubleValue <= 0.0) 
-        return NEGATIVE_INFINITY
+      if (tau.doubleValue <= 0.0) return NEGATIVE_INFINITY
       return log(tau.doubleValue) * n * 0.5
     })
     | alpha, Matrix eigenVectors = spatialData.car_eigendecomposition ~ LogPotential({
-      if (alpha.doubleValue < 0.0 || alpha.doubleValue >= 1.0) 
-        return NEGATIVE_INFINITY
+      if (alpha.doubleValue < 0.0 || alpha.doubleValue >= 1.0) return NEGATIVE_INFINITY
       return 0.5 * SpatialData::fast_log_det(eigenVectors, alpha.doubleValue)
     })
     
@@ -98,8 +87,7 @@ model SparseCAR {
           double covariate = covariates.get(location)
         ~ Poisson({
           val result = exp(covariate * slope.doubleValue + intercept.doubleValue + spatialEffect.doubleValue + log_offset)
-          if (result == Double.POSITIVE_INFINITY) 
-            invalidParameter
+          if (result == Double.POSITIVE_INFINITY) invalidParameter
           return result
         })
       
