@@ -1,0 +1,2 @@
+Note: adj.csv is 1 indexed while data.csv is 0-indexed. 
+It's on purpose, the current script to read in takes that into account.

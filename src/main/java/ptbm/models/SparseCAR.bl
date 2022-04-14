@@ -1,0 +1,108 @@
+package ptbm.models
+
+import ptbm.VariationalReal
+import briefj.collections.UnorderedPair
+
+model SparseCAR {
+  
+  param GlobalDataSource data
+  param Plate<Integer> locations
+  
+  param Plated<Double> expectedCounts
+  param Plated<Double> covariates
+  param SpatialData spatialData
+  
+  param RealDistribution pseudoPrior ?: Normal::distribution(0, 100)
+  
+  random VariationalReal alpha
+//  random RealVar alpha ?: 0.5
+  random VariationalReal tau 
+  random VariationalReal slope, intercept
+  random Plated<VariationalReal> spatialEffects
+  random Plated<IntVar> counts
+  
+  laws {
+   
+    alpha ~ 
+      Opt(
+        ContinuousUniform
+        ::distribution
+        (0, 1)
+      ) 
+    tau ~ Opt(Gamma::distribution(2, 2))
+    slope ~ Opt(Normal::distribution(0, 1)) 
+    intercept ~ Opt(Normal::distribution(0, 1)) 
+        
+    for (Index<Integer> location : locations.indices) {
+      
+      // Gaussian MF pseudo-prior
+      spatialEffects.get(location) | pseudoPrior ~ Opt(pseudoPrior)
+      | pseudoPrior, VariationalReal se = spatialEffects.get(location) ~ LogPotential(-pseudoPrior.logDensity(se.doubleValue))
+      
+    }
+    
+    // break down target Gaussian likelihood to exploit sparsity
+    // off diagonal in 0.5 * effets * precision * effects
+    for (UnorderedPair<Integer,Integer> pair : spatialData.edges) {
+       
+       | tau, alpha,
+         VariationalReal firstEffect  = spatialEffects.get(locations.index(pair.first)), 
+         VariationalReal secondEffect = spatialEffects.get(locations.index(pair.second)), 
+         double w = spatialData.adjacency.get(pair.first, pair.second) 
+       ~ LogPotential({
+          if (tau.doubleValue <= 0.0) 
+            return NEGATIVE_INFINITY
+          if (alpha.doubleValue < 0.0 || alpha.doubleValue >= 1.0) 
+            return NEGATIVE_INFINITY
+          return firstEffect.doubleValue *
+            tau.doubleValue * alpha.doubleValue * w *
+            secondEffect.doubleValue
+       }) // * 2.0 / 2.0 --- b/c we loop over unordered pairs
+
+    }
+    // diagonal
+    for (Index<Integer> location : locations.indices) {
+    
+      |  tau,
+         VariationalReal effect  = spatialEffects.get(location), 
+         double d = spatialData.getD.get(location.key, location.key) 
+       ~ LogPotential({
+          if (tau.doubleValue <= 0.0) 
+            return NEGATIVE_INFINITY
+          return - 0.5 * effect.doubleValue *
+            tau.doubleValue * d *
+            effect.doubleValue
+       })
+    
+    }
+    // Gaussian likelihood, continued (normalization constant)
+    | int n = locations.indices.size ~ LogPotential(-0.5 * n * log(2.0 * PI))
+    | tau, int n = locations.indices.size ~ LogPotential({
+      if (tau.doubleValue <= 0.0) 
+        return NEGATIVE_INFINITY
+      return log(tau.doubleValue) * n * 0.5
+    })
+    | alpha, Matrix eigenVectors = spatialData.car_eigendecomposition ~ LogPotential({
+      if (alpha.doubleValue < 0.0 || alpha.doubleValue >= 1.0) 
+        return NEGATIVE_INFINITY
+      return 0.5 * SpatialData::fast_log_det(eigenVectors, alpha.doubleValue)
+    })
+    
+    // Poisson emissions
+    for (Index<Integer> location : locations.indices) {
+      
+      counts.get(location) 
+        | slope, intercept, 
+          VariationalReal spatialEffect = spatialEffects.get(location),
+          double log_offset = log(expectedCounts.get(location)),
+          double covariate = covariates.get(location)
+        ~ Poisson({
+          val result = exp(covariate * slope.doubleValue + intercept.doubleValue + spatialEffect.doubleValue + log_offset)
+          if (result == Double.POSITIVE_INFINITY) 
+            invalidParameter
+          return result
+        })
+      
+    }
+  }
+}

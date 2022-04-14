@@ -25,7 +25,7 @@ model Vaccines {
   
   laws {
     
-    eff_m ~ Opt(Normal::distribution(0.0, 1000.0))
+    eff_m ~ Opt(Normal::distribution(0.0, 1000.0)) // TODO: restore t p-priors
     eff_d ~ Opt(Normal::distribution(0.0, 1000.0))
     inc_m ~ Opt(Normal::distribution(0.0, 1000.0))
     inc_d ~ Opt(Normal::distribution(0.0, 1000.0))

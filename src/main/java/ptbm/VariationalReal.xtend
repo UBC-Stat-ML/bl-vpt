@@ -12,7 +12,7 @@ class VariationalReal implements WritableRealVar {
   double value = 0.0
   public RealDistribution variational = null
   
-  // ID used to match up variational approximations across copies:
+  // ID used to match up variational approximations across replica:
   public VariableIdentifier identifier = new VariableIdentifier()
   
   public boolean paused = false

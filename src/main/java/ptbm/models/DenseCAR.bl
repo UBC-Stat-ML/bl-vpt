@@ -1,0 +1,65 @@
+package ptbm.models
+
+import ptbm.VariationalReal
+import briefj.collections.UnorderedPair
+
+model DenseCAR {
+  
+  param GlobalDataSource data
+  param Plate<Integer> locations
+  
+  param Plated<Double> expectedCounts
+  param Plated<Double> covariates
+  param SpatialData spatialData
+  
+  param RealDistribution pseudoPrior ?: Normal::distribution(0, 100)
+  
+  random VariationalReal alpha ?: {val res = new VariationalReal; res.set(0.5); return res}
+//  random RealVar alpha ?: 0.5
+  random VariationalReal tau ?: {val res = new VariationalReal; res.set(0.5); return res}
+  random VariationalReal slope, intercept
+  random Matrix spatialEffects ?: latentVector(locations.indices.size)
+  random Plated<IntVar> counts
+  
+  laws {
+   
+    alpha ~ 
+      Opt(
+        ContinuousUniform
+        ::distribution
+        (0, 1)
+      ) 
+    tau ~ Opt(Gamma::distribution(2, 2))
+    slope ~ Opt(Normal::distribution(0, 1)) 
+    intercept ~ Opt(Normal::distribution(0, 1)) 
+        
+    spatialEffects | Matrix zero = dense(locations.indices.size).readOnlyView,
+      tau, alpha, Matrix D = spatialData.getD, Matrix W = spatialData.adjacency 
+      ~ MultivariateNormal(zero, {
+        try { 
+          return (tau.doubleValue * (D - alpha.doubleValue * W)).cholesky
+        }
+        catch (Exception e) { 
+          invalidParameter
+          return null;
+        }
+      })
+    
+    // Poisson emissions
+    for (Index<Integer> location : locations.indices) {
+      
+      counts.get(location) 
+        | slope, intercept, 
+          RealVar spatialEffect = spatialEffects.getRealVar(location.key),
+          double log_offset = log(expectedCounts.get(location)),
+          double covariate = covariates.get(location)
+        ~ Poisson({
+          val result = exp(covariate * slope.doubleValue + intercept.doubleValue + spatialEffect.doubleValue + log_offset)
+          if (result == Double.POSITIVE_INFINITY) 
+            invalidParameter
+          return result
+        })
+      
+    }
+  }
+}
