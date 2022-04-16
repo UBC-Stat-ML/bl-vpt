@@ -3,9 +3,15 @@ package ptbm.models
 import static extension ptbm.StaticUtils.*
 import ptbm.VariationalReal
 
+/**
+ * Shows that sometimes a variational family with 
+ * less parameters may work better
+ * (but only true when useTPrior = false
+ */
 model EightSchoolsSimple {
   param GlobalDataSource data
   param Plate<String> schools
+  param Boolean useTPrior ?: true
   
   random VariationalReal mu ?: unconstrainedLatentReal
   random VariationalReal tau ?: unconstrainedLatentReal
@@ -16,7 +22,8 @@ model EightSchoolsSimple {
   laws {
     
     mu ~ Opt(Normal::distribution(0, 5 * 5))
-    tau ~ Opt(HalfStudentT::distribution(1, 5))
+    tau | RealDistribution prior = if (useTPrior) HalfStudentT::distribution(1, 5) else Normal::distribution(0, 5 * 5)
+       ~ Opt(prior)
     
     for (Index<String> school : schools.indices) {
       thetas.get(school) | mu, tau ~ Normal(mu, tau.softplus)
