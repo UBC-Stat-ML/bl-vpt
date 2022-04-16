@@ -28,6 +28,10 @@ class OptPT extends PT {
                   @DefaultValue("true")
   public boolean useFixedRefPT = true
   
+  @Arg(description = "Out of 2 iterations, swap the target chains between the fixed-ref PT and variational PT")           
+                                 @DefaultValue("true")
+  public boolean doSwapFixedRefAndVariational = true
+  
   var budget = 0.0
   
   override reportRoundStatistics(Round round) {
@@ -46,7 +50,7 @@ class OptPT extends PT {
     super.swapAndRecordStatistics(scanIndex)
     if (useFixedRefPT) {
       fixedRefPT.swapAndRecordStatistics(scanIndex)
-      if (scanIndex % 2 == 1) {
+      if (scanIndex % 2 == 1 && doSwapFixedRefAndVariational) {
         // note we index so that the room temp chain is at 0
         // hence for odd swaps the room temp chain is not involved in swaps
         // hence these are the iterations where we want to do swaps b/w 
