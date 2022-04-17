@@ -1,0 +1,64 @@
+package ptbm.models
+
+import chromobreak.SingleCellHMMs
+import chromobreak.SingleCellHMMs.Configs
+import blang.types.internals.RealScalar
+import chromobreak.SingleCellData
+import chromobreak.StaticUtils
+import chromobreak.ReadCountModel
+
+import static extension ptbm.StaticUtils.*
+import ptbm.VariationalReal
+
+model SingleCell {
+  param SingleCellData data
+  param Configs configs
+  param Integer maxState ?: 20
+  
+  param Double vagueness ?: 10.0
+  
+  random Plated<IntVar> nStates 
+  random VariationalReal switchRate ?: unconstrainedLatentReal
+  random VariationalReal f0 ?: unconstrainedLatentReal
+  random VariationalReal f1 ?: unconstrainedLatentReal
+  random VariationalReal f2 ?: unconstrainedLatentReal  
+  random VariationalReal sd ?: unconstrainedLatentReal 
+  random VariationalReal sdSlope ?: unconstrainedLatentReal 
+  random VariationalReal p ?: unconstrainedLatentReal
+   
+  random ReadCountModel readCountModel ?: new ReadCountModel(f0, f1, f2, [sd.softplus], [sdSlope.softplus])
+  
+  // Keeping a copy to easily serialize demarginalized hmms
+  random Map<String, SingleCellHMMs> hmms ?: new LinkedHashMap
+    
+  laws {
+    
+    switchRate ~ Opt(Exponential::distribution(1.0))
+    
+    f0 | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    f1 | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness))  
+    f2 | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness))  
+    
+    sd | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    sdSlope | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    
+    p | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness))
+    
+    for (Index<String> chromosome : data.chromosomes.indices) { 
+      nStates.get(chromosome) | p, maxState ~ Categorical(StaticUtils::truncatedGeometric(logistic(p.doubleValue), maxState))
+      | SingleCellHMMs hmm = {
+          val current = new SingleCellHMMs(
+            data, 
+            chromosome, 
+            readCountModel, 
+            switchRate, 
+            configs,
+            nStates.get(chromosome)
+          )
+          hmms.put(chromosome.key, current)
+          current
+      } 
+      ~ LogPotential(hmm.logMarginal) 
+    }
+  }
+}

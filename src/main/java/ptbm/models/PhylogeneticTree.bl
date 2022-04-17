@@ -1,0 +1,24 @@
+package ptbm.models
+
+import static extension ptbm.StaticUtils.*
+import ptbm.VariationalReal
+
+import conifer.*
+import static conifer.Utils.*
+
+model PhylogeneticTree {
+  
+  param Double vagueness ?: 1.0
+  
+  random VariationalReal shape ?: unconstrainedLatentReal, rate ?: unconstrainedLatentReal
+  random SequenceAlignment observations
+  random UnrootedTree tree ?: unrootedTree(observations.observedTreeNodes)
+  param EvolutionaryModel evoModel ?: kimura(observations.nSites)
+
+  laws {
+    shape | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    rate  | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    tree | shape, rate ~ NonClockTreePrior(Gamma::distribution(shape.softplus, rate.softplus))
+    observations | tree, evoModel ~ UnrootedTreeLikelihood(tree, evoModel)
+  }
+}

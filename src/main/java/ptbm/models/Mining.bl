@@ -1,0 +1,32 @@
+package ptbm.models
+
+import static extension ptbm.StaticUtils.*
+import ptbm.VariationalReal
+
+model Mining {
+  
+  param Double vagueness ?: 1.0
+  
+  random VariationalReal r1 ?: unconstrainedLatentReal
+  random VariationalReal p1 ?: unconstrainedLatentReal
+  random VariationalReal r2 ?: unconstrainedLatentReal
+  random VariationalReal p2 ?: unconstrainedLatentReal
+  random VariationalReal s ?: unconstrainedLatentReal
+  random List<IntVar> counts
+  
+  laws {
+    
+    r1 | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    p1 | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    r2 | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    p2 | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    s | vagueness ~ Opt(Normal::distribution(0, vagueness*vagueness)) 
+    
+    for (int t : 0 ..< counts.size) {
+      counts.get(t) | t, r1, p1, r2, p2, s, int max = counts.size ~ NegativeBinomial(
+        if (t <= logistic(s.doubleValue) * max) r1.softplus else r2.softplus,
+        if (t <= logistic(s.doubleValue) * max) logistic(p1.doubleValue) else logistic(p2.doubleValue)
+      )
+    }
+  }
+} 

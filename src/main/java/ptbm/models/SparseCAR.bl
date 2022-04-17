@@ -21,9 +21,12 @@ model SparseCAR {
   random Plated<IntVar> counts
   
   laws {
-   
+    // NB: at moment constraints not enforced but does not cause
+    // exceptions b/c they do not drive forward simulation of the 
+    // latent variables.
     alpha ~ Opt(ContinuousUniform::distribution(0, 1)) 
     tau ~ Opt(Gamma::distribution(2, 2))
+    
     slope ~ Opt(Normal::distribution(0, 1)) 
     intercept ~ Opt(Normal::distribution(0, 1)) 
         

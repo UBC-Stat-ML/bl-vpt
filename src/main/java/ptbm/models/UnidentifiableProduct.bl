@@ -1,0 +1,16 @@
+package ptbm.models
+
+import static extension ptbm.StaticUtils.*
+import ptbm.VariationalReal
+
+model UnidentifiableProduct {
+  random VariationalReal x ?: unconstrainedLatentReal
+  random VariationalReal y ?: unconstrainedLatentReal
+  param IntVar nTrials ?: 100000
+  random IntVar nFails ?: nTrials/2
+  laws {
+    x ~ Opt(ContinuousUniform::distribution(0.0, 1.0))
+    y ~ Opt(ContinuousUniform::distribution(0.0, 1.0))
+    nFails | nTrials, x, y ~ Binomial(nTrials, x.doubleValue * y.doubleValue)
+  }
+}
