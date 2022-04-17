@@ -124,7 +124,8 @@ class Automatic extends Interpolation
             else
               "" + "id_" + i++
           result.put(name, variable)
-        } else throw new RuntimeException
+        } else 
+          System.err.println("WARNING: Type of variable not handled: " + variable.class)
       } else throw new RuntimeException
     }
     return result
