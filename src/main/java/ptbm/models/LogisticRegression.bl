@@ -3,6 +3,7 @@ package ptbm.models
 import glms.DotProduct
 import ptbm.VariationalReal
 import static extension ptbm.StaticUtils.*
+import static  ptbm.models.Utils.avoidBoundaries
 
 
 model LogisticRegression {
@@ -22,17 +23,17 @@ model LogisticRegression {
     
     for (Index<String> instance : instances.indices) {
       labels.get(instance) | intercept, DotProduct dotProduct = DotProduct.of(features, parameters, covariates.slice(instance))
-        ~ Bernoulli(logistic(intercept + dotProduct.compute))
+        ~ Bernoulli(avoidBoundaries(logistic(intercept + dotProduct.compute)))
     }
     
     for (Index<String> feature : features.indices) {
-      parameters.get(feature) | sigma, RealDistribution prior = if (useTPrior) HalfStudentT::distribution(1, 5) else Normal::distribution(0, 5 * 5)
-       ~ Opt(prior)
+      parameters.get(feature) | sigma, useTPrior
+       ~ Opt(if (useTPrior) StudentT::distribution(1.0, 0.0, sigma.softplus) else Normal::distribution(0, sigma.softplus * sigma.softplus))
     }
-    intercept | sigma, RealDistribution prior = if (useTPrior) HalfStudentT::distribution(1, 5) else Normal::distribution(0, 5 * 5)
-       ~ Opt(prior)
+    intercept | sigma, useTPrior
+       ~ Opt(if (useTPrior) StudentT::distribution(1.0, 0.0, sigma.softplus) else Normal::distribution(0, sigma.softplus * sigma.softplus))
         
-    sigma ~ Opt(Exponential::distribution(1.0))
+    sigma ~ Opt(Normal::distribution(0.0, 1.0))
     
   }
 }
