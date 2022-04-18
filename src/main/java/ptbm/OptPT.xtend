@@ -28,6 +28,9 @@ class OptPT extends PT {
                   @DefaultValue("true")
   public boolean useFixedRefPT = true
   
+  @Arg(description = "For quick benchmarking, convenient to run both fixed ref and variational without them interacting at all.")             @DefaultValue("false")
+  public boolean fullyIndepFixedRef = false
+  
   @Arg(description = "Out of 2 iterations, swap the target chains between the fixed-ref PT and variational PT")           
                                  @DefaultValue("true")
   public boolean doSwapFixedRefAndVariational = true
@@ -50,7 +53,7 @@ class OptPT extends PT {
     super.swapAndRecordStatistics(scanIndex)
     if (useFixedRefPT) {
       fixedRefPT.swapAndRecordStatistics(scanIndex)
-      if (scanIndex % 2 == 1 && doSwapFixedRefAndVariational) {
+      if (scanIndex % 2 == 1 && doSwapFixedRefAndVariational && !fullyIndepFixedRef) {
         // note we index so that the room temp chain is at 0
         // hence for odd swaps the room temp chain is not involved in swaps
         // hence these are the iterations where we want to do swaps b/w 
@@ -78,12 +81,12 @@ class OptPT extends PT {
   override MonotoneCubicSpline adapt(boolean finalAdapt) { 
     val stats = new AllSummaryStatistics
     stats.getAndResetStatistics(states)
-    if (useFixedRefPT) stats.getAndResetStatistics(fixedRefPT.states) 
+    if (useFixedRefPT && !fullyIndepFixedRef) stats.getAndResetStatistics(fixedRefPT.states) 
     if (stats.n > minSamplesForVariational) {
       activated = true
       System.out.println('''Updating variational reference («stats.values.keySet.size» variables)''')
       states.setVariationalApproximation(stats)
-      if (useFixedRefPT) fixedRefPT.states.setVariationalApproximation(stats)
+      if (useFixedRefPT && !fullyIndepFixedRef) fixedRefPT.states.setVariationalApproximation(stats)
       stats.report(results, iterIdx, finalAdapt, budget)
       results.getTabularWriter(optimizationMonitoring.toString).child(iter, iterIdx).child("isFinal", finalAdapt).child(Fields.budget, budget) => [
         write(
