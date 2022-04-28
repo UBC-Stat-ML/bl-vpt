@@ -1,0 +1,22 @@
+package ptbm.models
+
+import ptbm.VariationalReal
+
+model CauchyCauchy {
+  
+  param GlobalDataSource data
+  param Plate<Integer> obs
+  
+  random VariationalReal theta
+  random Plated<RealVar> ys 
+  
+  laws {
+    
+    theta ~ Opt(StudentT::distribution(1, 0, 1))
+    
+    for (Index<Integer> idx : obs.indices) {
+      ys.get(idx) | theta ~ StudentT(1, theta, 1)
+    }
+    
+  }
+}

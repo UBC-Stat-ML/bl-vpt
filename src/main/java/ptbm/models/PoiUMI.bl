@@ -1,0 +1,23 @@
+package ptbm.models
+
+import static extension ptbm.StaticUtils.*
+import ptbm.VariationalReal
+import humi.CountFrequencies
+import humi.SimpleCountFrequencies
+
+model PoiUMI { 
+  
+  param RealVar vague ?: 100.0
+  param Double nUMIMean ?: 10.0
+  
+  random VariationalReal mean_t
+  random CountFrequencies frequencies ?: new SimpleCountFrequencies
+  
+  laws {
+    
+    mean_t | vague ~ Opt(Normal::distribution(0, vague))
+    
+    frequencies | mean_t, nUMIMean ~ CensoredExchangeableCounts(Poisson::distribution(mean_t.softplus), nUMIMean)
+    
+  }
+}

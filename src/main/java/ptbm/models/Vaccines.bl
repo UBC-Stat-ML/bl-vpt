@@ -36,7 +36,7 @@ model Vaccines {
     }
     
     for (Index<String> trial : trials.indices) {
-      for (Index<String> arm : arms.indices) {
+      for (Index<String> arm : arms.indices(trial)) {
         numbersOfCases.get(trial, arm) | 
           IntVar groupSize = groupSizes.get(trial, arm), 
           RealVar efficacy = if (arm.isControl) 0.0 else efficacies.get(trial),
