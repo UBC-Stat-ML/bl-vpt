@@ -11,6 +11,7 @@ import blang.core.LogScaleFactor
 import blang.mcmc.RealSliceSampler
 import blang.core.RealVar
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics
+import ptanalysis.StdNormalProposalMH
 
 class VariationalRealSampler implements Sampler {
   
@@ -36,8 +37,10 @@ class VariationalRealSampler implements Sampler {
       statistics.add(variable.doubleValue)
   }
   
+  public static boolean useMH = false
+  
   override boolean setup(SamplerBuilderContext context) {
-    sampler = RealSliceSampler::build(variable, numericFactors)
+    sampler = if (useMH) StdNormalProposalMH::build(variable, numericFactors) else RealSliceSampler::build(variable, numericFactors)
     annealingParam = context.annealingParameter
     statistics = new MeanVarSummaries
     return true

@@ -1,0 +1,14 @@
+package ptbm.models
+
+model Flat {
+  
+  random RealVar x
+  
+  laws {
+    logf(x) { 0.0 }
+  }
+  
+  generate(it) { 
+    if (Double.isNaN(x)) 160.0 else x
+  }
+}

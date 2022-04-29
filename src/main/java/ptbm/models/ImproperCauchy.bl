@@ -1,0 +1,35 @@
+package ptbm.models
+
+import ptbm.VariationalReal
+import blang.types.internals.RealScalar
+import ptbm.VariationalRealSampler
+
+model ImproperCauchy {
+  
+  param Object __ ?: {
+    VariationalRealSampler::useMH = true
+  }
+  
+  param Double minAnnealingParameter ?: 0.01
+  
+  random VariationalReal theta ?: {
+    val result = new VariationalReal()
+    result.set(160.0)
+    return result
+  } 
+  random List<RealVar> ys ?: fixedRealList(
+    //117, 135, 135, 162, 162, 171, 189, 189, 198, 225
+    225, 171, 198, 189, 189, 135, 162, 135, 117, 162
+  ) // from Davison 2003, example 4.2
+  
+  
+  laws {
+    
+    theta ~ Opt(Flat::distribution())
+    
+    for (RealVar y : ys) {
+      | y, theta, minAnnealingParameter ~ LogPotential_keep_proper(minAnnealingParameter, StudentT::distribution(1, theta, 1).logDensity(y))
+    }
+    
+  }
+}

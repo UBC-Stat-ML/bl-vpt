@@ -1,0 +1,27 @@
+package ptbm.models
+
+import briefj.BriefIO
+import briefj.BriefLog
+
+model LogPotential_keep_proper {
+  /** The log of the current value of this potential. */
+  param Double minAnnealingParameter
+  param RealVar logPotential
+  
+  laws {
+    | minAnnealingParameter, logPotential, RealVar p = new AnnealingParameter ~ LogPotential({
+      try {
+        if (minAnnealingParameter < 0 || minAnnealingParameter >= 1.0)
+          throw new RuntimeException
+        val rescaledAnnealedParam = minAnnealingParameter + (1.0 - minAnnealingParameter) * p
+        return logPotential * rescaledAnnealedParam
+      } catch (NullPointerException npe) {
+        // can happen if running straight MCMC
+        BriefLog::warnOnce("This should only happen if running MCMC engine..") 
+        (p as AnnealingParameter)._set([1.0])
+        return logPotential
+      }
+    })
+  }
+  
+}
