@@ -2,8 +2,6 @@ package ptgrad
 
 import blang.runtime.internals.DefaultPostProcessor
 import java.io.File
-import java.util.Map
-import opt.Optimizer
 import blang.inits.experiments.tabwriters.TidySerializer
 import static opt.Optimizer.Files.*
 import static opt.Optimizer.Fields.*
@@ -12,36 +10,25 @@ import blang.System;
 import static blang.inits.experiments.tabwriters.factories.CSV.*
 import ptbm.OptPT
 import java.util.Optional
-import briefj.BriefFiles
-import blang.engines.internals.factories.PT.Column
+import blang.inits.DefaultValue
+import blang.inits.Arg
 
 class VariationalPostprocessor extends DefaultPostProcessor {
   
-  val static public PATH_PLOTS = "pathPlots"
+  public val static String VARIATIONAL_COLOUR = "skyblue1"
+  public val static String FIXED_REF_COLOUR = "orange"
+  public val static String TARGET_COLOUR = "grey30"
+  
+  @Arg
+  @DefaultValue("scale_colour_gradient(low = \"" + TARGET_COLOUR + "\", high = \"" + FIXED_REF_COLOUR + "\")")
+  public String fixedPathPlotArguments = "scale_colour_gradient(low = \"" + TARGET_COLOUR + "\", high = \"" + FIXED_REF_COLOUR + "\")"
+  
+  @Arg
+  @DefaultValue("scale_colour_gradient(low = \"" + TARGET_COLOUR + "\", high = \"" + VARIATIONAL_COLOUR + "\")")
+  public String variationalPathPlotArguments = "scale_colour_gradient(low = \"" + TARGET_COLOUR + "\", high = \"" + VARIATIONAL_COLOUR + "\")"
  
   override run() {
-    
-    val allChainsSamples = new File(blangExecutionDirectory.get, OptPT::SAMPLES_FOR_ALL_CHAINS)
-    if (allChainsSamples.exists) {
-      System.out.indentWithTiming("Annealing paths")
-      for (samples : BriefFiles.ls(allChainsSamples)) 
-        if (samples.name.endsWith(".csv") || samples.name.endsWith(".csv.gz")) {
-          val types = TidySerializer::types(samples)
-          if (types.containsKey(TidySerializer::VALUE)) {
-            val type = types.get(TidySerializer::VALUE)
-            // statistics that could make sense for both reals and integers
-            if (isRealValued(type)) {
-              System.out.println("Postprocessing " + variableName(samples))
-              createPlot(
-                new PathPlot(samples, types, this),
-                results.getFileInResultFolder(PATH_PLOTS)
-            )
-            }
-          }
-        }
-      System.out.popIndent  
-    }
-    
+    this.pathPlotArguments = fixedPathPlotArguments;
     System.out.indentWithTiming("Variational chain")
     for (file : #[optimizationMonitoring, optimizationPath, optimizationGradient])
       plotTrace(csvFile(results.resultsFolder, file.toString))
@@ -50,31 +37,6 @@ class VariationalPostprocessor extends DefaultPostProcessor {
     System.out.popIndent
     
     diagnosticReferenceChain()
-
-  }
-  
-  
-  static class PathPlot extends GgPlot {
-    new(File posteriorSamples, Map<String, Class<?>> types, VariationalPostprocessor processor) {
-      super(posteriorSamples, types, processor)
-    }
-    override ggCommand() {
-      val facets = facetString
-      return '''
-      «removeBurnIn»
-      
-      
-      p <- ggplot(data, aes(x = «TidySerializer::VALUE», colour = «Column.chain», group = «Column.chain»)) +
-        geom_density() + «facetString»
-        theme_bw() + 
-        xlab("«variableName»") +
-        ylab("density") +
-        ggtitle("Density plot for: «variableName»")
-      '''
-    }
-    override facetVariables() {
-      indices(types) => [remove(Column.chain.toString)]
-    }
   }
   
   def diagnosticReferenceChain() {
@@ -82,6 +44,7 @@ class VariationalPostprocessor extends DefaultPostProcessor {
     if (childFolder.exists) {
       System.out.indentWithTiming("Fixed reference chain")
       this.blangExecutionDirectory = Optional.of(childFolder)
+      this.pathPlotArguments = variationalPathPlotArguments;
       this.results = this.results.child(OptPT::fixedReferencePT)
       super.run
       System.out.popIndent

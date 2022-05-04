@@ -12,7 +12,7 @@ targetCompatibility = '1.8'
 def blangVersion = '4.0.7' 
 dependencies {
   xtextLanguages "com.github.UBC-Stat-ML.blangDSL:ca.ubc.stat.blang:${blangVersion}"
-  compile group: 'com.github.UBC-Stat-ML', name: 'blangSDK', version: '2.14.4'
+  compile group: 'com.github.UBC-Stat-ML', name: 'blangSDK', version: '2.15.1'
   compile group: 'com.github.UBC-Stat-ML', name: 'blangDemos', version: '1.0.0'
   compile group: 'com.github.UBC-Stat-ML', name: 'xlinear', version: '2.4.2'
 }
@@ -33,12 +33,11 @@ xtext {
 }
 
 repositories {
+  maven { url "file:///${System.properties['user.home']}/artifacts/" }
+  maven { url "https://www.stat.ubc.ca/~bouchard/maven/" }
+  maven { url 'https://jitpack.io' }
   mavenCentral()
   jcenter()
-  maven { url "file:///${System.properties['user.home']}/artifacts/" }
-  maven { url 'https://jitpack.io' }
-  maven { url "https://ubc-stat-ml.github.io/artifacts/" }
-  maven { url "https://www.stat.ubc.ca/~bouchard/maven/" }
 }
 
 xtend {
