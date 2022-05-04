@@ -9,6 +9,6 @@ model Flat {
   }
   
   generate(it) { 
-    if (Double.isNaN(x)) 160.0 else x
+    if (Double.isNaN(x)) 0.0 else x
   }
 }

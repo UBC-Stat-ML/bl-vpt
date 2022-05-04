@@ -1,9 +1,9 @@
 package ptbm.models
 
-import briefj.BriefIO
 import briefj.BriefLog
 
 model LogPotential_keep_proper {
+  
   /** The log of the current value of this potential. */
   param Double minAnnealingParameter
   param RealVar logPotential

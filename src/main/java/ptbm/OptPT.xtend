@@ -15,6 +15,9 @@ import static opt.Optimizer.Fields.*
 import static opt.Optimizer.Files.*
 
 import static extension ptbm.StaticUtils.*
+import static blang.runtime.Runner.sampleColumn
+import blang.io.BlangTidySerializer
+import blang.engines.internals.factories.PT.Column
 
 class OptPT extends PT {
   
@@ -34,6 +37,9 @@ class OptPT extends PT {
   @Arg(description = "Out of 2 iterations, swap the target chains between the fixed-ref PT and variational PT")           
                                  @DefaultValue("true")
   public boolean doSwapFixedRefAndVariational = true
+  
+  @Arg                       @DefaultValue("false")
+  public boolean storeSamplesForAllChains = false
   
   var budget = 0.0
   
@@ -108,9 +114,24 @@ class OptPT extends PT {
     return super.adapt(finalAdapt)
   }
   
+  var BlangTidySerializer allChainsSerializer = null
+  public val static SAMPLES_FOR_ALL_CHAINS = "samplesForAllChains"
+  
   override void recordSamples(int scanIndex) {
     super.recordSamples(scanIndex)
     if (useFixedRefPT) fixedRefPT.recordSamples(scanIndex)
+    
+    if (storeSamplesForAllChains) { 
+      
+      if (allChainsSerializer === null)
+        allChainsSerializer = new BlangTidySerializer(results.child(SAMPLES_FOR_ALL_CHAINS)); 
+      
+      for (var int c = 0; c < states.size; c++)
+        states.get(c).getSampleWriter(allChainsSerializer).write(
+          sampleColumn -> scanIndex,
+          Column.chain -> c
+        );
+    }
   }
   
   override void reportLambdaFunctions(Round round, MonotoneCubicSpline cumulativeLambdaEstimate) {
