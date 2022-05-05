@@ -18,7 +18,9 @@ dependencies {
 }
 
 configurations {
-    all*.exclude group: "net.sourceforge.parallelcolt"
+  all*.exclude group: "net.sourceforge.parallelcolt"
+  all*.exclude group: "pl.edu.icm"
+
 }
 
 xtext {
