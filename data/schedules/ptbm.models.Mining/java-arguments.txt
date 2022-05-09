@@ -1,0 +1,1 @@
+--model.counts file data/mining-disasters.csv --engine.nScans 2_000 --postProcessor DefaultPostProcessor --model demos.Mining$Builder
