@@ -1,0 +1,1 @@
+--model.data data/failure_counts.csv --postProcessor DefaultPostProcessor --engine.nScans 2000 --engine.nChains 8 --model ptbm.models.CollapsedHierarchicalRockets$Builder
