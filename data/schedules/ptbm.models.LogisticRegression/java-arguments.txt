@@ -1,0 +1,1 @@
+--model.data data/titanic/titanic-covariates-original.csv --model.instances.name Name --model.instances.maxSize INF --model.labels.dataSource data/titanic/titanic.csv --model.labels.name Survived --model.useTPrior false --postProcessor DefaultPostprocessor --engine.nChains 20 --engine.nThreads MAX --model ptbm.models.LogisticRegression$Builder
