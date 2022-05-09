@@ -3,9 +3,15 @@ It's on purpose, the current script to read in takes that into account.
 
 Used:
 
-source('data/scotland_lip_cancer.RData')
+source('data/scotland_lip_cancer.RData')  # copied from https://github.com/mbjoseph/CARstan/tree/master/data see also doc at https://mc-stan.org/users/documentation/case-studies/mbjoseph-CARStan.html
 scaled_x <- c(scale(x))
 df <- data.frame(counts = O, expectedCounts = E, covariates = scaled_x)
 
 
 Then a manually tweak to make it 0-indexed
+
+
+Then to put the adj matrix in a separate file (matrix A is loaded by the source command above)
+
+write.csv(A, "adj.csv")
+
