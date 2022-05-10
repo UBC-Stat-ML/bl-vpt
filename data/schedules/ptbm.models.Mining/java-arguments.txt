@@ -1,1 +1,1 @@
---model.counts file data/mining-disasters.csv --engine.nScans 2_000 --postProcessor DefaultPostProcessor --model demos.Mining$Builder
+--model.counts file data/mining-disasters.csv --engine.nScans 2_000 --engine.nChains 8 --postProcessor DefaultPostprocessor --model ptbm.models.Mining$Builder
