@@ -1,0 +1,45 @@
+package ptbm.models
+
+import glms.DotProduct
+import ptbm.VariationalReal
+import static extension ptbm.StaticUtils.*
+import static  ptbm.models.Utils.avoidBoundaries
+
+
+model LogisticRegressionUnid {
+    
+  param GlobalDataSource data
+  param Plate<String> instances, features
+  param Boolean useTPrior ?: true
+  
+  param Plated<Double> covariates
+  random Plated<VariationalReal> parameters
+  random Plated<IntVar> labels
+  
+  random VariationalReal sigma ?: unconstrainedLatentReal
+  random VariationalReal intercept ?: unconstrainedLatentReal
+  
+  param Index<String> unidFeature ?: new Index(features, "Pclass")
+  random VariationalReal unidParameter ?: unconstrainedLatentReal
+  
+  laws {
+    
+    for (Index<String> instance : instances.indices) {
+      labels.get(instance) | Double unidCovariate = covariates.get(instance, unidFeature), unidParameter, intercept, DotProduct dotProduct = DotProduct.of(features, parameters, covariates.slice(instance))
+        ~ Bernoulli(avoidBoundaries(logistic(intercept + dotProduct.compute + unidParameter.doubleValue * unidCovariate)))
+    }
+    
+    for (Index<String> feature : features.indices) {
+      parameters.get(feature) | sigma, useTPrior
+       ~ Opt(if (useTPrior) StudentT::distribution(1.0, 0.0, sigma.softplus) else Normal::distribution(0, sigma.softplus * sigma.softplus))
+    }
+    intercept | sigma, useTPrior
+       ~ Opt(if (useTPrior) StudentT::distribution(1.0, 0.0, sigma.softplus) else Normal::distribution(0, sigma.softplus * sigma.softplus))
+    unidParameter | sigma, useTPrior
+       ~ Opt(if (useTPrior) StudentT::distribution(1.0, 0.0, sigma.softplus) else Normal::distribution(0, sigma.softplus * sigma.softplus))
+ 
+        
+    sigma ~ Opt(Normal::distribution(0.0, 1.0))
+    
+  }
+}
