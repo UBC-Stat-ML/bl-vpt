@@ -1,0 +1,23 @@
+package ptbm.models
+
+import ptbm.VariationalReal
+
+
+model ToyBivariateNormal {
+  param RealVar correlation ?: 0.5
+  random VariationalReal x1, x2
+  
+  laws {
+    
+    x1 ~ Opt(Flat::distribution())
+    x2 ~ Opt(Flat::distribution())
+    
+    | Matrix L = (denseCopy(#[#[1, -correlation], #[-correlation, 1]]) / (1.0 - pow(correlation, 2))).cholesky.L,
+      x1, x2 ~ LogPotential({
+      val centered = denseCopy(#[x1.doubleValue, x2.doubleValue])
+      return - 0.5 * (centered.transpose * L * L.transpose * centered).doubleValue
+    }) 
+    
+    
+  }
+}
