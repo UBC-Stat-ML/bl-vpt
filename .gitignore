@@ -8,3 +8,5 @@ build
 results
 src-gen
 experiments-todo.txt
+.Rapp.history
+TODO.txt
