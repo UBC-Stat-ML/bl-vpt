@@ -1,0 +1,35 @@
+package ptbm.models
+
+import org.apache.commons.math3.distribution.NormalDistribution
+import static ptbm.models.Utils.*
+
+model MixTawn2022 {
+  
+  param Integer dim ?: 20
+  random List<RealVar> xs ?: latentRealList(dim)
+  random IntVar k ?: latentInt
+  
+  param Double box ?: 20.0
+  
+  laws {
+    
+    k ~ DiscreteUniform(1, 5)
+    
+    for (Integer j : 1..dim) {
+      
+      | NormalDistribution n = new NormalDistribution(), k, dim, j, RealVar x = xs.get(j-1), box ~ LogPotential({
+        var sum = 0.0
+        
+        sum += log(2.0) - log(w(k))
+        
+        sum += n.logDensity((x - mu(k, j, box, dim)) / w(k) )
+        sum += log(n.cumulativeProbability(10.0 * (x - mu(k, j, box, dim)) / w(k)))
+        
+        return sum
+      })
+      
+    }
+    
+  }
+  
+}
