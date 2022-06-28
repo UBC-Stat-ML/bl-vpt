@@ -25,8 +25,6 @@ import blang.runtime.SampledModel
 import blang.runtime.internals.objectgraph.GraphAnalysis
 import com.google.common.primitives.Doubles
 import java.util.List
-import blang.engines.internals.factories.PT.Column
-import blang.engines.internals.factories.PT.MonitoringOutput
 
 class ISCM implements PosteriorInferenceEngine { 
   
@@ -55,12 +53,19 @@ class ISCM implements PosteriorInferenceEngine {
       val approx = scm.getApproximation(scm.initialize(model, streams), 1.0, model, streams, false)
       
       // increase number of particles, temperatures
-      if (scm.nResamplingRounds == 0) 
-        numberOfSMCIterations *= 2
-      else {
+      if (scm.nResamplingRounds == 0) {
+        System.out.println("No resampling performed: increasing # particles x2.")
+        scm.nParticles *= 2
+      } else {
+        System.out.println("Increasing # particles x1.4; # iteration x1.4.")
         numberOfSMCIterations = Math::ceil(numberOfSMCIterations * Math::sqrt(2.0)) as int
         scm.nParticles        = Math::ceil(scm.nParticles        * Math::sqrt(2.0)) as int
       }
+      System.out.formatln("NextBudget", 
+      "[", 
+        "nParticles" -> scm.nParticles, 
+        "nIterations" -> numberOfSMCIterations,
+      "]");
       
       // update schedule
       schedule = updateSchedule(scm.annealingParameters, scm.energySDs, numberOfSMCIterations, r)
@@ -117,9 +122,8 @@ class ISCM implements PosteriorInferenceEngine {
   
   def double [] cumulativeSDs(List<Double> SDs, List<Double> annealingParams) {
     val double [] result = newDoubleArrayOfSize(SDs.size + 1)
-    for (var int i = 1; i < result.length; i++) {
-      result.set(i, result.get(i-1) + SDs.get(i-1) * (annealingParams.get(i) - annealingParams.get(i-1)));
-    }
+    for (var int i = 1; i < result.length; i++) 
+      result.set(i, result.get(i-1) + SDs.get(i-1) * (annealingParams.get(i) - annealingParams.get(i-1)))
     return result
   }
   
