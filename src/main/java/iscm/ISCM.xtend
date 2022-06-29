@@ -25,6 +25,9 @@ import blang.runtime.SampledModel
 import blang.runtime.internals.objectgraph.GraphAnalysis
 import com.google.common.primitives.Doubles
 import java.util.List
+import java.util.concurrent.TimeUnit
+import blang.engines.internals.factories.PT.MonitoringOutput
+import blang.engines.internals.factories.PT.Column
 
 class ISCM implements PosteriorInferenceEngine { 
   
@@ -73,7 +76,12 @@ class ISCM implements PosteriorInferenceEngine {
       scm.random = streams.get(0)
       
       reportRoundStatistics(r, approx.logNormEstimate, scm.annealingParameters)
-      System.out.popIndent()
+      val roundTime = System.out.popIndent.watch.elapsed(TimeUnit.MILLISECONDS)
+      writer(MonitoringOutput.roundTimings).write(
+        Column.round -> r,
+        Column.isAdapt -> (r < nRounds - 1),
+        TidySerializer.VALUE -> roundTime
+      )
     }
   }
   
