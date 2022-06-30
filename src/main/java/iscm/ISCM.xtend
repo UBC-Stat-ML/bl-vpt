@@ -3,7 +3,6 @@ package iscm
 import bayonet.distributions.Random
 import blang.System
 import blang.engines.internals.EngineStaticUtils
-import blang.engines.internals.PosteriorInferenceEngine
 import blang.engines.internals.Spline
 import blang.engines.internals.Spline.MonotoneCubicSpline
 import blang.engines.internals.SplineDerivatives
@@ -16,25 +15,15 @@ import blang.engines.internals.schedules.TemperatureSchedule
 import blang.engines.internals.schedules.UserSpecified
 import blang.inits.Arg
 import blang.inits.DefaultValue
-import blang.inits.GlobalArg
-import blang.inits.experiments.ExperimentResults
 import blang.inits.experiments.tabwriters.TabularWriter
 import blang.inits.experiments.tabwriters.TidySerializer
 import blang.runtime.Runner
 import blang.runtime.SampledModel
-import blang.runtime.internals.objectgraph.GraphAnalysis
 import com.google.common.primitives.Doubles
 import java.util.List
 import java.util.concurrent.TimeUnit
-import blang.engines.internals.factories.PT.MonitoringOutput
-import blang.engines.internals.factories.PT.Column
 
-class ISCM implements PosteriorInferenceEngine { 
-  
-  @GlobalArg public ExperimentResults results = new ExperimentResults();
-  
-  @Arg
-  public SCM scm = new SCM
+class ISCM extends SCM { 
    
   @Arg  @DefaultValue("5")
   public int nRounds = 5;
@@ -44,42 +33,44 @@ class ISCM implements PosteriorInferenceEngine {
   
   SampledModel model;
   
+  var currentRound = 0
   override performInference() {
     var numberOfSMCIterations = initialNumberOfSMCIterations;
-    scm.estimateFullZFunction = true;
+    estimateFullZFunction = true;
+    
     var TemperatureSchedule schedule = new FixedTemperatureSchedule() => [ nTemperatures = initialNumberOfSMCIterations ]
-    for (r : 0 ..< nRounds) {
-      System.out.indentWithTiming("Round(" + (r+1) + "/" + nRounds + ")") 
-      scm.temperatureSchedule = schedule
-      val streams = Random.parallelRandomStreams(scm.random, scm.nParticles)
-      scm.results = results.child("round-" + r)
-      val approx = scm.getApproximation(scm.initialize(model, streams), 1.0, model, streams, false)
+    for (currentRound = 0; currentRound < nRounds; currentRound++) {
+      System.out.indentWithTiming("Round(" + (currentRound+1) + "/" + nRounds + ")") 
+      writer(ISCMOutput::budget).printAndWrite(
+        "nParticles" -> nParticles, 
+        "nIterations" -> numberOfSMCIterations
+      )
+      prevResamplingIter = 0
+      prevResamplingAnnealingParam = 0.0
+      temperatureSchedule = schedule
+      val streams = Random.parallelRandomStreams(random, nParticles)
+      val approx = getApproximation(initialize(model, streams), 1.0, model, streams, false)
       
       // increase number of particles, temperatures
-      if (scm.nResamplingRounds == 0) {
-        System.out.println("No resampling performed: increasing # particles x2.")
-        scm.nParticles *= 2
+      if (nResamplingRounds == 0) {
+        System.out.println(" --> no resampling performed: increasing # particles x2.")
+        nParticles *= 2
       } else {
-        System.out.println("Increasing # particles x1.4; # iteration x1.4.")
+        System.out.println(" --> increasing # particles x1.4; # iteration x1.4.")
         numberOfSMCIterations = Math::ceil(numberOfSMCIterations * Math::sqrt(2.0)) as int
-        scm.nParticles        = Math::ceil(scm.nParticles        * Math::sqrt(2.0)) as int
+        nParticles            = Math::ceil(nParticles            * Math::sqrt(2.0)) as int
       }
-      System.out.formatln("NextBudget", 
-      "[", 
-        "nParticles" -> scm.nParticles, 
-        "nIterations" -> numberOfSMCIterations,
-      "]");
       
       // update schedule
-      schedule = updateSchedule(scm.annealingParameters, scm.energySDs, numberOfSMCIterations, r)
+      schedule = updateSchedule(annealingParameters, energySDs, numberOfSMCIterations, currentRound)
       
-      scm.random = streams.get(0)
+      random = streams.get(0)
       
-      reportRoundStatistics(r, approx.logNormEstimate, scm.annealingParameters)
+      reportRoundStatistics(currentRound, approx.logNormEstimate, annealingParameters)
       val roundTime = System.out.popIndent.watch.elapsed(TimeUnit.MILLISECONDS)
       writer(MonitoringOutput.roundTimings).write(
-        Column.round -> r,
-        Column.isAdapt -> (r < nRounds - 1),
+        Column.round -> currentRound,
+        Column.isAdapt -> (currentRound < nRounds - 1),
         TidySerializer.VALUE -> roundTime
       )
     }
@@ -106,12 +97,12 @@ class ISCM implements PosteriorInferenceEngine {
     val xs = Doubles::toArray(previousAnnealingParams)
     val ys = cumulativeSDs(energySDs, previousAnnealingParams)
     val spline = Spline.createMonotoneCubicSpline(xs, ys) as MonotoneCubicSpline
-    reportLambdaFunctions(spline, roundIndex)
+    reportLambdaFunctions(spline, nSMCItersForNextRound, roundIndex)
     val updated = EngineStaticUtils::fixedSizeOptimalPartition(spline, nSMCItersForNextRound)
     return new UserSpecified(updated)
   }
   
-  def void reportLambdaFunctions(MonotoneCubicSpline cumulativeLambdaEstimate, int roundIndex) {
+  def void reportLambdaFunctions(MonotoneCubicSpline cumulativeLambdaEstimate, int nSMCItersForNextRound, int roundIndex) {
     val rPair = Column.round -> roundIndex
     val isAdapt = Column.isAdapt -> (roundIndex < nRounds - 1)
     for (var int i = 1; i < PT._lamdbaDiscretization; i++) {
@@ -126,6 +117,16 @@ class ISCM implements PosteriorInferenceEngine {
         TidySerializer.VALUE -> SplineDerivatives.derivative(cumulativeLambdaEstimate, beta)
       );
     }
+    val Lambda = cumulativeLambdaEstimate.value(1.0)
+    writer(MonitoringOutput.globalLambda).printAndWrite(
+      rPair,
+      TidySerializer.VALUE -> Lambda
+    );
+    val prediction = (nSMCItersForNextRound ** 2) * Math::log(2.0) / (Lambda ** 2)
+    writer(ISCMOutput::predictedResamplingInterval).printAndWrite(
+      Column.round -> (roundIndex+1),
+      TidySerializer.VALUE -> prediction
+    )
   }
   
   def double [] cumulativeSDs(List<Double> SDs, List<Double> annealingParams) {
@@ -135,16 +136,49 @@ class ISCM implements PosteriorInferenceEngine {
     return result
   }
   
-  override check(GraphAnalysis analysis) {
-    scm.check(analysis)
-  }
-  
   override setSampledModel(SampledModel model) {
-    scm.sampledModel = model
+    super.setSampledModel(model)
     this.model = model;
   }
   
-  def TabularWriter writer(MonitoringOutput output)
+  
+  override void recordPropagationStatistics(int iteration, double nextTemp, double ess, double logNorm) {
+    writer(ISCMOutput::multiRoundPropagation).write(
+      Column::round -> currentRound,
+      iterationColumn -> iteration,
+      annealingParameterColumn -> nextTemp,
+      essColumn -> ess,
+      logNormalizationColumn -> logNorm
+    );
+  }
+  
+  int prevResamplingIter = 0
+  double prevResamplingAnnealingParam = 0.0 
+  override void recordResamplingStatistics(int iteration, double temperature, double logNormalization) {
+    writer(ISCMOutput::multiRoundResampling).printAndWrite(
+      Column::round -> currentRound,
+      iterationColumn -> iteration,
+      annealingParameterColumn -> temperature,
+      logNormalizationColumn -> logNormalization,
+      ISCMColumns::deltaIterations -> (iteration - prevResamplingIter),
+      ISCMColumns::deltaAnnealingParameter -> (temperature - prevResamplingAnnealingParam)
+    )
+    prevResamplingIter = iteration
+    prevResamplingAnnealingParam = temperature
+  }
+  
+
+  // TODO (NB: some of these might slow things down quite a bit, e.g. recordLogWeights)
+  override void recordRelativeVarZ(String estimatorName, double logRelativeVarZ) {}
+  override void recordLogWeights(double [] weights, double temperature) {}
+  override void recordAncestry(int iteration, List<Integer> ancestors, double temperature) {}
+  
+  // see also PT.MonitoringOutput, using the latter as much as possible for consistency
+  static enum ISCMOutput { budget, multiRoundPropagation, multiRoundResampling, predictedResamplingInterval }
+  
+  static enum ISCMColumns { deltaIterations, deltaAnnealingParameter }
+  
+  def TabularWriter writer(Object output)
   {
     return results.child(Runner.MONITORING_FOLDER).getTabularWriter(output.toString());
   }
