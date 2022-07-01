@@ -53,10 +53,10 @@ class ISCM extends SCM {
       
       // increase number of particles, temperatures
       if (nResamplingRounds == 0) {
-        System.out.println(" --> no resampling performed: increasing # particles x2.")
+        System.out.println(" --> no resampling performed: increasing # particles x2")
         nParticles *= 2
       } else {
-        System.out.println(" --> increasing # particles x1.4; # iteration x1.4.")
+        System.out.println(" --> increasing # particles x1.4; # iteration x1.4")
         numberOfSMCIterations = Math::ceil(numberOfSMCIterations * Math::sqrt(2.0)) as int
         nParticles            = Math::ceil(nParticles            * Math::sqrt(2.0)) as int
       }
