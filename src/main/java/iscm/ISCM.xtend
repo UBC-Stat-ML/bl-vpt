@@ -22,6 +22,7 @@ import blang.runtime.SampledModel
 import com.google.common.primitives.Doubles
 import java.util.List
 import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
 
 class ISCM extends SCM { 
    
@@ -36,7 +37,7 @@ class ISCM extends SCM {
   var currentRound = 0
   override performInference() {
     var numberOfSMCIterations = initialNumberOfSMCIterations;
-    estimateFullZFunction = true;
+    estimateISCMStatistics = true;
     
     var TemperatureSchedule schedule = new FixedTemperatureSchedule() => [ nTemperatures = initialNumberOfSMCIterations ]
     for (currentRound = 0; currentRound < nRounds; currentRound++) {
@@ -62,7 +63,7 @@ class ISCM extends SCM {
       }
       
       // update schedule
-      schedule = updateSchedule(annealingParameters, energySDs, numberOfSMCIterations, currentRound)
+      schedule = updateSchedule(annealingParameters, incrementalLogWeightSDs, numberOfSMCIterations, currentRound)  
       
       random = streams.get(0)
       
@@ -73,6 +74,7 @@ class ISCM extends SCM {
         Column.isAdapt -> (currentRound < nRounds - 1),
         TidySerializer.VALUE -> roundTime
       )
+      results.flushAll
     }
   }
   
@@ -93,9 +95,9 @@ class ISCM extends SCM {
     }
   }
   
-  def UserSpecified updateSchedule(List<Double> previousAnnealingParams, List<Double> energySDs, int nSMCItersForNextRound, int roundIndex) {
+  def UserSpecified updateSchedule(List<Double> previousAnnealingParams, List<Double> incrementalLogWeightSDs, int nSMCItersForNextRound, int roundIndex) {
     val xs = Doubles::toArray(previousAnnealingParams)
-    val ys = cumulativeSDs(energySDs, previousAnnealingParams)
+    val ys = cumulativeSDs(incrementalLogWeightSDs, previousAnnealingParams)
     val spline = Spline.createMonotoneCubicSpline(xs, ys) as MonotoneCubicSpline
     reportLambdaFunctions(spline, nSMCItersForNextRound, roundIndex)
     val updated = EngineStaticUtils::fixedSizeOptimalPartition(spline, nSMCItersForNextRound)
@@ -131,8 +133,15 @@ class ISCM extends SCM {
   
   def double [] cumulativeSDs(List<Double> SDs, List<Double> annealingParams) {
     val double [] result = newDoubleArrayOfSize(SDs.size + 1)
-    for (var int i = 1; i < result.length; i++) 
-      result.set(i, result.get(i-1) + SDs.get(i-1) * (annealingParams.get(i) - annealingParams.get(i-1)))
+    val max = SDs.filter[Double.isFinite(it)].max
+    for (var int i = 1; i < result.length; i++) {
+      var sd = SDs.get(i-1);
+      if (Double.isInfinite(sd)) {
+        System.err.println("Warning: SD[incr W]=infinity in beta in [" + annealingParams.get(i-1) + "," + annealingParams.get(i) + ") -- for schedule cumulative SD using instead max+1=" + (max+1))
+        sd = max + 1
+      }
+      result.set(i, result.get(i-1) + sd)
+    }
     return result
   }
   
