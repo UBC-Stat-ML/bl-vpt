@@ -22,12 +22,14 @@ import blang.runtime.SampledModel
 import com.google.common.primitives.Doubles
 import java.util.List
 import java.util.concurrent.TimeUnit
-import java.util.stream.Collectors
 
 class ISCM extends SCM { 
    
   @Arg  @DefaultValue("5")
   public int nRounds = 5;
+  
+  @Arg  @DefaultValue("true")
+  public boolean useExtrapolationForLeftPoint = true;
   
   @Arg                       @DefaultValue("20")
   public int initialNumberOfSMCIterations = 20;
@@ -136,6 +138,21 @@ class ISCM extends SCM {
     val max = SDs.filter[Double.isFinite(it)].max
     for (var int i = 1; i < result.length; i++) {
       var sd = SDs.get(i-1);
+      if (i == 1 && useExtrapolationForLeftPoint) {
+        if (!resamplingTriggeredRejuvenation)
+          throw new RuntimeException("This approximation may catastrophically fail without post-resampling rejuvenation when severe particle degeneracy occurs.")
+        // SD{V} at beta = 0 is not guaranteed to exist
+        // for now, just extrapolate the next end point...
+        val old = SDs.get(i-1)
+        if (i+1 < result.length) {
+          val delta_height = SDs.get(i) - SDs.get(i+1)
+          sd = Math::max(0, SDs.get(i) + delta_height)
+          System.out.println("1st order interpolation for left point: " + sd + " instead of " + old)
+        } else {
+          sd = SDs.get(i)
+          System.out.println("0th order interpolation for left point: " + sd + " instead of " + old)
+        }
+      }
       if (Double.isInfinite(sd)) {
         System.err.println("Warning: SD[incr W]=infinity in beta in [" + annealingParams.get(i-1) + "," + annealingParams.get(i) + ") -- for schedule cumulative SD using instead max+1=" + (max+1))
         sd = max + 1
