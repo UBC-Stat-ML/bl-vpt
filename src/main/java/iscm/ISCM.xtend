@@ -144,7 +144,7 @@ class ISCM extends SCM {
         // SD{V} at beta = 0 is not guaranteed to exist
         // for now, just extrapolate the next end point...
         val old = SDs.get(i-1)
-        if (i+1 < result.length) {
+        if (i+1 < SDs.size) {
           val delta_height = SDs.get(i) - SDs.get(i+1)
           sd = Math::max(0, SDs.get(i) + delta_height)
           System.out.println("1st order interpolation for left point: " + sd + " instead of " + old)
