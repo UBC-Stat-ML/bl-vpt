@@ -31,13 +31,18 @@ class ISCM extends SCM {
   @Arg  @DefaultValue("true")
   public boolean useExtrapolationForLeftPoint = true;
   
-  @Arg                       @DefaultValue("20")
+  @Arg(description = "Set to at least 3")                       
+                             @DefaultValue("20")
   public int initialNumberOfSMCIterations = 20;
   
   SampledModel model;
   
   var currentRound = 0
   override performInference() {
+    
+    if (initialNumberOfSMCIterations < 3)
+      throw new RuntimeException("cumulativeSDs() currently requires at least 3 initial SMC iterations")
+    
     var numberOfSMCIterations = initialNumberOfSMCIterations;
     estimateISCMStatistics = true;
     
