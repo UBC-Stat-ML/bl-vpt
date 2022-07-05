@@ -28,19 +28,22 @@ class ISCM extends SCM {
   @Arg  @DefaultValue("5")
   public int nRounds = 5;
   
-  @Arg  @DefaultValue("true")
-  public boolean useExtrapolationForLeftPoint = true;
+  @Arg                           @DefaultValue("false")
+  public boolean useExtrapolationForLeftPoint = false;
   
   @Arg(description = "Set to at least 3")                       
                              @DefaultValue("20")
   public int initialNumberOfSMCIterations = 20;
+  
+  @Arg                          @DefaultValue("true")
+  public boolean estimateSDEnergyBasedOnCESS = true
   
   SampledModel model;
   
   var currentRound = 0
   override performInference() {
     
-    if (initialNumberOfSMCIterations < 3)
+    if (initialNumberOfSMCIterations < 3 && useExtrapolationForLeftPoint)
       throw new RuntimeException("cumulativeSDs() currently requires at least 3 initial SMC iterations")
     
     var numberOfSMCIterations = initialNumberOfSMCIterations;
@@ -70,7 +73,7 @@ class ISCM extends SCM {
       }
       
       // update schedule
-      schedule = updateSchedule(annealingParameters, incrementalLogWeightSDs, numberOfSMCIterations, currentRound)  
+      schedule = updateSchedule(numberOfSMCIterations)  
       
       random = streams.get(0)
       
@@ -102,11 +105,11 @@ class ISCM extends SCM {
     }
   }
   
-  def UserSpecified updateSchedule(List<Double> previousAnnealingParams, List<Double> incrementalLogWeightSDs, int nSMCItersForNextRound, int roundIndex) {
-    val xs = Doubles::toArray(previousAnnealingParams)
-    val ys = cumulativeSDs(incrementalLogWeightSDs, previousAnnealingParams)
+  def UserSpecified updateSchedule(int nSMCItersForNextRound) {
+    val xs = Doubles::toArray(annealingParameters)
+    val ys = cumulativeSDs()
     val spline = Spline.createMonotoneCubicSpline(xs, ys) as MonotoneCubicSpline
-    reportLambdaFunctions(spline, nSMCItersForNextRound, roundIndex)
+    reportLambdaFunctions(spline, nSMCItersForNextRound, currentRound)
     val updated = EngineStaticUtils::fixedSizeOptimalPartition(spline, nSMCItersForNextRound)
     return new UserSpecified(updated)
   }
@@ -138,7 +141,20 @@ class ISCM extends SCM {
     )
   }
   
-  def double [] cumulativeSDs(List<Double> SDs, List<Double> annealingParams) {
+  def double [] cumulativeSDs() {
+    if (estimateSDEnergyBasedOnCESS) rCESS_cumulativeSDs() else incrementalLogWeight_cumulativeSDs()
+  }
+  
+  def double [] incrementalLogWeight_cumulativeSDs() {
+    return _cumulativeSDs(incrementalLogWeightSDs);
+  }
+  
+  def double [] rCESS_cumulativeSDs() {
+    val sqrtDivergences = relativeConditonalESSs.map[Math::sqrt(-Math::log(it))].toList
+    return _cumulativeSDs(sqrtDivergences)
+  }
+  
+  def double [] _cumulativeSDs(List<Double> SDs) {
     val double [] result = newDoubleArrayOfSize(SDs.size + 1)
     val max = SDs.filter[Double.isFinite(it)].max
     for (var int i = 1; i < result.length; i++) {
@@ -156,8 +172,8 @@ class ISCM extends SCM {
           System.out.println("0th order interpolation for left point: " + sd + " instead of " + old)
         }
       }
-      if (Double.isInfinite(sd)) {
-        System.err.println("Warning: SD[incr W]=infinity in beta in [" + annealingParams.get(i-1) + "," + annealingParams.get(i) + ") -- for schedule cumulative SD using instead max+1=" + (max+1))
+      if (!Double.isFinite(sd)) {
+        System.err.println("Warning: SD[incr W]=" + sd + " in beta in [" + annealingParameters.get(i-1) + "," + annealingParameters.get(i) + ") -- for schedule cumulative SD using instead max+1=" + (max+1))
         sd = max + 1
       }
       result.set(i, result.get(i-1) + sd)
