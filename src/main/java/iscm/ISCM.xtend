@@ -144,8 +144,6 @@ class ISCM extends SCM {
     for (var int i = 1; i < result.length; i++) {
       var sd = SDs.get(i-1);
       if (i == 1 && useExtrapolationForLeftPoint) {
-        if (!resamplingTriggeredRejuvenation)
-          throw new RuntimeException("This approximation may catastrophically fail without post-resampling rejuvenation when severe particle degeneracy occurs.")
         // SD{V} at beta = 0 is not guaranteed to exist
         // for now, just extrapolate the next end point...
         val old = SDs.get(i-1)
