@@ -28,23 +28,14 @@ class ISCM extends SCM {
   @Arg  @DefaultValue("5")
   public int nRounds = 5;
   
-  @Arg                           @DefaultValue("false")
-  public boolean useExtrapolationForLeftPoint = false;
-  
   @Arg(description = "Set to at least 3")                       
                              @DefaultValue("20")
   public int initialNumberOfSMCIterations = 20;
-  
-  @Arg                          @DefaultValue("true")
-  public boolean estimateSDEnergyBasedOnCESS = true
   
   SampledModel model;
   
   var currentRound = 0
   override performInference() {
-    
-    if (initialNumberOfSMCIterations < 3 && useExtrapolationForLeftPoint)
-      throw new RuntimeException("cumulativeSDs() currently requires at least 3 initial SMC iterations")
     
     var numberOfSMCIterations = initialNumberOfSMCIterations;
     estimateISCMStatistics = true;
@@ -106,12 +97,17 @@ class ISCM extends SCM {
   }
   
   def UserSpecified updateSchedule(int nSMCItersForNextRound) {
-    val xs = Doubles::toArray(annealingParameters)
-    val ys = cumulativeSDs()
-    val spline = Spline.createMonotoneCubicSpline(xs, ys) as MonotoneCubicSpline
+    val spline = estimateCumulativeLambda(annealingParameters, relativeConditonalESSs)
     reportLambdaFunctions(spline, nSMCItersForNextRound, currentRound)
     val updated = EngineStaticUtils::fixedSizeOptimalPartition(spline, nSMCItersForNextRound)
     return new UserSpecified(updated)
+  }
+  
+  def static MonotoneCubicSpline estimateCumulativeLambda(List<Double> annealingParameters, List<Double> relativeConditonalESSs) {
+    val xs = Doubles::toArray(annealingParameters)
+    val ys = cumulativeSDs(relativeConditonalESSs)
+    val spline = Spline.createMonotoneCubicSpline(xs, ys) as MonotoneCubicSpline
+    return spline
   }
   
   def void reportLambdaFunctions(MonotoneCubicSpline cumulativeLambdaEstimate, int nSMCItersForNextRound, int roundIndex) {
@@ -141,39 +137,14 @@ class ISCM extends SCM {
     )
   }
   
-  def double [] cumulativeSDs() {
-    if (estimateSDEnergyBasedOnCESS) rCESS_cumulativeSDs() else incrementalLogWeight_cumulativeSDs()
-  }
-  
-  def double [] incrementalLogWeight_cumulativeSDs() {
-    return _cumulativeSDs(incrementalLogWeightSDs);
-  }
-  
-  def double [] rCESS_cumulativeSDs() {
-    val sqrtDivergences = relativeConditonalESSs.map[Math::sqrt(-Math::log(it))].toList
-    return _cumulativeSDs(sqrtDivergences)
-  }
-  
-  def double [] _cumulativeSDs(List<Double> SDs) {
+  def static double [] cumulativeSDs(List<Double> relativeConditonalESSs) {
+    val SDs = relativeConditonalESSs.map[Math::sqrt(-Math::log(it))].toList
     val double [] result = newDoubleArrayOfSize(SDs.size + 1)
     val max = SDs.filter[Double.isFinite(it)].max
     for (var int i = 1; i < result.length; i++) {
       var sd = SDs.get(i-1);
-      if (i == 1 && useExtrapolationForLeftPoint) {
-        // SD{V} at beta = 0 is not guaranteed to exist
-        // for now, just extrapolate the next end point...
-        val old = SDs.get(i-1)
-        if (i+1 < SDs.size) {
-          val delta_height = SDs.get(i) - SDs.get(i+1)
-          sd = Math::max(0, SDs.get(i) + delta_height)
-          System.out.println("1st order interpolation for left point: " + sd + " instead of " + old)
-        } else {
-          sd = SDs.get(i)
-          System.out.println("0th order interpolation for left point: " + sd + " instead of " + old)
-        }
-      }
       if (!Double.isFinite(sd)) {
-        System.err.println("Warning: SD[incr W]=" + sd + " in beta in [" + annealingParameters.get(i-1) + "," + annealingParameters.get(i) + ") -- for schedule cumulative SD using instead max+1=" + (max+1))
+        System.err.println("Warning: SD[incr W]=" + sd + " at grid point " + i + " -- for schedule cumulative SD using instead max+1=" + (max+1))
         sd = max + 1
       }
       result.set(i, result.get(i-1) + sd)
