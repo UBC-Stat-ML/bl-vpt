@@ -11,11 +11,11 @@ import blang.inits.experiments.ExperimentResults
 
 class DebugSpikeSlab2 {
   def static void main(String [] args) {
-    val essFile = new File("/Users/bouchard/w/ptanalysis/results/all/2022-07-07-22-05-28-9UoYyJRF.exec/monitoring/relativeConditionalESS.csv")
+    val essFile = new File("/Users/bouchard/w/ptanalysis/results/all/2022-07-07-22-19-25-R97EUgtf.exec/monitoring/relativeConditionalESS.csv")
     
     val iter = BriefIO::readLines(essFile)
       .indexCSV
-      .filter[get("round") == "1"]
+      .filter[get("round") == "13"]
     
     val annealingParams = new ArrayList<Double> 
     val ess = new ArrayList<Double> 
@@ -28,7 +28,7 @@ class DebugSpikeSlab2 {
     val spline = ISCM::estimateCumulativeLambda(annealingParams, ess)
     
     
-    val nSMCItersForNextRound = 8
+    val nSMCItersForNextRound = 20
     val updated = EngineStaticUtils::fixedSizeOptimalPartition(spline, nSMCItersForNextRound)
     
     val result = new ExperimentResults
