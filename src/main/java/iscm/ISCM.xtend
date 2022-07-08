@@ -22,6 +22,8 @@ import blang.runtime.SampledModel
 import com.google.common.primitives.Doubles
 import java.util.List
 import java.util.concurrent.TimeUnit
+import blang.core.RealDistributionAdaptor.WritableRealVarImpl
+import com.google.common.collect.Ordering
 
 class ISCM extends SCM { 
    
@@ -44,6 +46,7 @@ class ISCM extends SCM {
     for (currentRound = 0; currentRound < nRounds; currentRound++) {
       System.out.indentWithTiming("Round(" + (currentRound+1) + "/" + nRounds + ")") 
       writer(ISCMOutput::budget).printAndWrite(
+        Column::round -> currentRound,
         "nParticles" -> nParticles, 
         "nIterations" -> numberOfSMCIterations
       )
@@ -97,6 +100,7 @@ class ISCM extends SCM {
   }
   
   def UserSpecified updateSchedule(int nSMCItersForNextRound) {
+    reportRelativeConditionalESS(annealingParameters, relativeConditonalESSs)
     val spline = estimateCumulativeLambda(annealingParameters, relativeConditonalESSs)
     reportLambdaFunctions(spline, nSMCItersForNextRound, currentRound)
     val updated = EngineStaticUtils::fixedSizeOptimalPartition(spline, nSMCItersForNextRound)
@@ -104,10 +108,23 @@ class ISCM extends SCM {
   }
   
   def static MonotoneCubicSpline estimateCumulativeLambda(List<Double> annealingParameters, List<Double> relativeConditonalESSs) {
+    if (annealingParameters.size - 1 !== relativeConditonalESSs.size)
+      throw new RuntimeException
+    if (!Ordering.natural().isOrdered(annealingParameters))
+      throw new RuntimeException();
     val xs = Doubles::toArray(annealingParameters)
     val ys = cumulativeSDs(relativeConditonalESSs)
     val spline = Spline.createMonotoneCubicSpline(xs, ys) as MonotoneCubicSpline
     return spline
+  }
+  
+  def void reportRelativeConditionalESS(List<Double> annealingParameters, List<Double> relativeConditonalESSs) {
+    for (var int i = 0; i < relativeConditonalESSs.size; i++)
+      writer(ISCMOutput::relativeConditionalESS).write(
+        Column.round -> currentRound,
+        Column.beta -> annealingParameters.get(i),
+        ISCMColumns.relativeConditionalESS -> relativeConditonalESSs.get(i)
+      )
   }
   
   def void reportLambdaFunctions(MonotoneCubicSpline cumulativeLambdaEstimate, int nSMCItersForNextRound, int roundIndex) {
@@ -190,9 +207,9 @@ class ISCM extends SCM {
   override void recordAncestry(int iteration, List<Integer> ancestors, double temperature) {}
   
   // see also PT.MonitoringOutput, using the latter as much as possible for consistency
-  static enum ISCMOutput { budget, multiRoundPropagation, multiRoundResampling, predictedResamplingInterval }
+  static enum ISCMOutput { budget, multiRoundPropagation, multiRoundResampling, predictedResamplingInterval, relativeConditionalESS }
   
-  static enum ISCMColumns { deltaIterations, deltaAnnealingParameter }
+  static enum ISCMColumns { deltaIterations, deltaAnnealingParameter, relativeConditionalESS }
   
   def TabularWriter writer(Object output)
   {
