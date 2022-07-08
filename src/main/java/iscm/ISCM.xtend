@@ -22,7 +22,6 @@ import blang.runtime.SampledModel
 import com.google.common.primitives.Doubles
 import java.util.List
 import java.util.concurrent.TimeUnit
-import blang.core.RealDistributionAdaptor.WritableRealVarImpl
 import com.google.common.collect.Ordering
 
 class ISCM extends SCM { 
