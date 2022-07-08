@@ -155,7 +155,10 @@ class ISCM extends SCM {
   }
   
   def static double [] cumulativeSDs(List<Double> relativeConditonalESSs) {
-    val SDs = relativeConditonalESSs.map[Math::sqrt(-Math::log(it))].toList
+    val SDs = relativeConditonalESSs.map[
+      if (it > 1.0) 0.0 // b/c of rounding error can get slightly more than 1.0 rESS
+      else Math::sqrt(-Math::log(it))
+    ].toList
     val double [] result = newDoubleArrayOfSize(SDs.size + 1)
     val max = SDs.filter[Double.isFinite(it)].max
     for (var int i = 1; i < result.length; i++) {
