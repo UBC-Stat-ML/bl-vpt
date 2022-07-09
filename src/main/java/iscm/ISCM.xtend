@@ -55,6 +55,9 @@ class ISCM extends SCM {
       val streams = Random.parallelRandomStreams(random, nParticles)
       val approx = getApproximation(initialize(model, streams), 1.0, model, streams, false)
       
+      val nExplorationStepsPerProp = Math.floor(nPassesPerScan * approx.particles.get(0).nPosteriorSamplers());
+      val nExplorationSteps = nExplorationStepsPerProp * nParticles * numberOfSMCIterations
+      
       // increase number of particles, temperatures
       if (nResamplingRounds == 0) {
         System.out.println(" --> no resampling performed: increasing # particles x2")
@@ -71,10 +74,13 @@ class ISCM extends SCM {
       random = streams.get(0)
       
       reportRoundStatistics(currentRound, approx.logNormEstimate, annealingParameters)
+      
+      
       val roundTime = System.out.popIndent.watch.elapsed(TimeUnit.MILLISECONDS)
       writer(MonitoringOutput.roundTimings).write(
         Column.round -> currentRound,
         Column.isAdapt -> (currentRound < nRounds - 1),
+        Column.nExplorationSteps -> nExplorationSteps,
         TidySerializer.VALUE -> roundTime
       )
       results.flushAll
