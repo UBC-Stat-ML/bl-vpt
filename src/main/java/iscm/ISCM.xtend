@@ -106,20 +106,45 @@ class ISCM extends SCM {
   
   def UserSpecified updateSchedule(int nSMCItersForNextRound) {
     reportRelativeConditionalESS(annealingParameters, relativeConditonalESSs)
-    val spline = estimateCumulativeLambda(annealingParameters, relativeConditonalESSs)
-    reportLambdaFunctions(spline, nSMCItersForNextRound, currentRound)
-    val updated = EngineStaticUtils::fixedSizeOptimalPartition(spline, nSMCItersForNextRound)
+    val cumulativeLambda = estimateCumulativeLambda(annealingParameters, relativeConditonalESSs)
+    reportLambdaFunctions(cumulativeLambda, nSMCItersForNextRound, currentRound)
+    val scheduleGenerator = estimateScheduleGenerator(annealingParameters, relativeConditonalESSs)
+    val updated = EngineStaticUtils::fixedSizeOptimalPartitionFromScheduleGenerator(scheduleGenerator, nSMCItersForNextRound)
     return new UserSpecified(updated)
   }
   
-  def static MonotoneCubicSpline estimateCumulativeLambda(List<Double> annealingParameters, List<Double> relativeConditonalESSs) {
+  def static  MonotoneCubicSpline estimateCumulativeLambda(
+      List<Double> annealingParameters, 
+      List<Double> acceptanceProbabilities) {
+    return estimateCumulativeFunctions(annealingParameters, acceptanceProbabilities, false);
+  }
+  
+  def static  MonotoneCubicSpline estimateScheduleGenerator(
+      List<Double> annealingParameters, 
+      List<Double> acceptanceProbabilities) {
+    return estimateCumulativeFunctions(annealingParameters, acceptanceProbabilities, true);
+  }
+  
+  def static MonotoneCubicSpline estimateCumulativeFunctions(
+    List<Double> annealingParameters, 
+    List<Double> relativeConditonalESSs, 
+    boolean returnScheduleGenerator
+  ) {
     if (annealingParameters.size - 1 !== relativeConditonalESSs.size)
       throw new RuntimeException
     if (!Ordering.natural().isOrdered(annealingParameters))
       throw new RuntimeException();
     val xs = Doubles::toArray(annealingParameters)
     val ys = cumulativeSDs(relativeConditonalESSs)
-    val spline = Spline.createMonotoneCubicSpline(xs, ys) as MonotoneCubicSpline
+    if (returnScheduleGenerator) {
+      val norm = ys.last
+      for (var int i = 0; i < ys.length; i++)
+        ys.set(i, ys.get(i) / norm)
+    }
+    val spline = Spline.createMonotoneCubicSpline(
+      if (returnScheduleGenerator) ys else xs, 
+      if (returnScheduleGenerator) xs else ys
+    ) as MonotoneCubicSpline
     return spline
   }
   
