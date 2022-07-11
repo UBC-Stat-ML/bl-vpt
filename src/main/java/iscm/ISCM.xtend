@@ -3,7 +3,6 @@ package iscm
 import bayonet.distributions.Random
 import blang.System
 import blang.engines.internals.EngineStaticUtils
-import blang.engines.internals.Spline
 import blang.engines.internals.Spline.MonotoneCubicSpline
 import blang.engines.internals.SplineDerivatives
 import blang.engines.internals.factories.PT
@@ -19,10 +18,9 @@ import blang.inits.experiments.tabwriters.TabularWriter
 import blang.inits.experiments.tabwriters.TidySerializer
 import blang.runtime.Runner
 import blang.runtime.SampledModel
-import com.google.common.primitives.Doubles
 import java.util.List
 import java.util.concurrent.TimeUnit
-import com.google.common.collect.Ordering
+import java.util.ArrayList
 
 class ISCM extends SCM { 
    
@@ -106,21 +104,12 @@ class ISCM extends SCM {
   
   def UserSpecified updateSchedule(int nSMCItersForNextRound) {
     reportRelativeConditionalESS(annealingParameters, relativeConditonalESSs)
-    val spline = estimateCumulativeLambda(annealingParameters, relativeConditonalESSs)
-    reportLambdaFunctions(spline, nSMCItersForNextRound, currentRound)
-    val updated = EngineStaticUtils::fixedSizeOptimalPartition(spline, nSMCItersForNextRound)
+    val intensities = SDs(relativeConditonalESSs)
+    val cumulativeLambdaEstimate = EngineStaticUtils::estimateCumulativeLambdaFromIntensities(annealingParameters, intensities)
+    reportLambdaFunctions(cumulativeLambdaEstimate, nSMCItersForNextRound, currentRound)
+    val generator = EngineStaticUtils::estimateScheduleGeneratorFromIntensities(annealingParameters, intensities)
+    val updated = EngineStaticUtils::fixedSizeOptimalPartitionFromScheduleGenerator(generator, nSMCItersForNextRound)
     return new UserSpecified(updated)
-  }
-  
-  def static MonotoneCubicSpline estimateCumulativeLambda(List<Double> annealingParameters, List<Double> relativeConditonalESSs) {
-    if (annealingParameters.size - 1 !== relativeConditonalESSs.size)
-      throw new RuntimeException
-    if (!Ordering.natural().isOrdered(annealingParameters))
-      throw new RuntimeException();
-    val xs = Doubles::toArray(annealingParameters)
-    val ys = cumulativeSDs(relativeConditonalESSs)
-    val spline = Spline.createMonotoneCubicSpline(xs, ys) as MonotoneCubicSpline
-    return spline
   }
   
   def void reportRelativeConditionalESS(List<Double> annealingParameters, List<Double> relativeConditonalESSs) {
@@ -159,20 +148,20 @@ class ISCM extends SCM {
     )
   }
   
-  def static double [] cumulativeSDs(List<Double> relativeConditonalESSs) {
+  def static List<Double> SDs(List<Double> relativeConditonalESSs) {
     val SDs = relativeConditonalESSs.map[
       if (it > 1.0) 0.0 // b/c of rounding error can get slightly more than 1.0 rESS
       else Math::sqrt(-Math::log(it))
     ].toList
-    val double [] result = newDoubleArrayOfSize(SDs.size + 1)
     val max = SDs.filter[Double.isFinite(it)].max
-    for (var int i = 1; i < result.length; i++) {
-      var sd = SDs.get(i-1);
+    val List<Double> result = new ArrayList<Double>
+    for (var int i = 0; i < relativeConditonalESSs.size; i++) {
+      var sd = SDs.get(i);
       if (!Double.isFinite(sd)) {
         System.err.println("Warning: SD[incr W]=" + sd + " at grid point " + i + " -- for schedule cumulative SD using instead max+1=" + (max+1))
         sd = max + 1
       }
-      result.set(i, result.get(i-1) + sd)
+      result.add(sd)
     }
     return result
   }
@@ -209,7 +198,7 @@ class ISCM extends SCM {
   }
   
 
-  // TODO (NB: some of these might slow things down quite a bit, e.g. recordLogWeights)
+  // NB: some of these might slow things down quite a bit, e.g. recordLogWeights; so skipping for now
   override void recordRelativeVarZ(String estimatorName, double logRelativeVarZ) {}
   override void recordLogWeights(double [] weights, double temperature) {}
   override void recordAncestry(int iteration, List<Integer> ancestors, double temperature) {}
