@@ -21,6 +21,7 @@ import blang.runtime.SampledModel
 import java.util.List
 import java.util.concurrent.TimeUnit
 import java.util.ArrayList
+import bayonet.smc.ParticlePopulation
 
 class ISCM extends SCM { 
    
@@ -57,7 +58,8 @@ class ISCM extends SCM {
       val nExplorationSteps = nExplorationStepsPerProp * nParticles * numberOfSMCIterations
       
       // increase number of particles, temperatures
-      if (nResamplingRounds == 0) {
+      
+      if (stabilized(approx)) {
         System.out.println(" --> no resampling performed: increasing # particles x2")
         nParticles *= 2
       } else {
@@ -83,6 +85,12 @@ class ISCM extends SCM {
       )
       results.flushAll
     }
+  }
+  
+  def boolean stabilized(ParticlePopulation<?> p) {
+    val isAIS = resamplingESSThreshold == 0.0
+    if (isAIS) p.getRelativeESS() > 0.5
+    else       nResamplingRounds == 0
   }
   
   def reportRoundStatistics(int roundIndex, double logNormEstimate, List<Double> annealingParams) {
