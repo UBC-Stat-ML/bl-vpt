@@ -10,7 +10,6 @@ import is.DiagonalHalfSpaceImportanceSampler
 import bayonet.math.NumericalUtils
 import ptgrad.tests.ToyNormal
 import ptgrad.TemperingObjective
-import ptanalysis.PTGradientTest
 import blang.inits.Arg
 import ptgrad.TemperingObjective.SKL
 import ptgrad.TemperingObjective.Rejection
