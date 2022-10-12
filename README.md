@@ -1,6 +1,6 @@
 # Variational PT plug-in for Blang
 
-This repository contains the Blang PPL scripts accompanying the paper
+This repository contains the Blang code accompanying the paper
 "Parallel Tempering With a Variational Reference" by Surjanovic, Syed, Bouchard-Côté, and Campbell. NeurIPS (2022).
 [https://arxiv.org/abs/2206.00080](https://arxiv.org/abs/2206.00080)
 
